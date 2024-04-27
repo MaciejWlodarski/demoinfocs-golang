@@ -58,6 +58,13 @@ func (p property) Name() string {
 }
 
 func (p property) Value() st.PropertyValue {
+	v := p.entity.Get(p.name)
+
+	fs, ok := v.(*fieldState)
+	if ok {
+		v = fs.state
+	}
+
 	return st.PropertyValue{
 		VectorVal: r3.Vector{},
 		IntVal:    0,
@@ -65,7 +72,7 @@ func (p property) Value() st.PropertyValue {
 		ArrayVal:  nil,
 		StringVal: "",
 		FloatVal:  0,
-		Any:       p.entity.Get(p.name),
+		Any:       v,
 		S2:        true,
 	}
 }
@@ -197,19 +204,23 @@ func coordFromCell(cell uint64, offset float32) float64 {
 }
 
 func (e *Entity) Position() r3.Vector {
-	cellXProp := e.Property(propCellX)
-	cellYProp := e.Property(propCellY)
-	cellZProp := e.Property(propCellZ)
-	offsetXProp := e.Property(propVecX)
-	offsetYProp := e.Property(propVecY)
-	offsetZProp := e.Property(propVecZ)
+	cellXVal := e.Property(propCellX).Value()
+	cellYVal := e.Property(propCellY).Value()
+	cellZVal := e.Property(propCellZ).Value()
+	offsetXVal := e.Property(propVecX).Value()
+	offsetYVal := e.Property(propVecY).Value()
+	offsetZVal := e.Property(propVecZ).Value()
 
-	cellX := cellXProp.Value().S2UInt64()
-	cellY := cellYProp.Value().S2UInt64()
-	cellZ := cellZProp.Value().S2UInt64()
-	offsetX := offsetXProp.Value().Float()
-	offsetY := offsetYProp.Value().Float()
-	offsetZ := offsetZProp.Value().Float()
+	if cellXVal.Any == nil || cellYVal.Any == nil || cellZVal.Any == nil || offsetXVal.Any == nil || offsetYVal.Any == nil || offsetZVal.Any == nil {
+		return r3.Vector{} // CS2 POV demos
+	}
+
+	cellX := cellXVal.S2UInt64()
+	cellY := cellYVal.S2UInt64()
+	cellZ := cellZVal.S2UInt64()
+	offsetX := offsetXVal.Float()
+	offsetY := offsetYVal.Float()
+	offsetZ := offsetZVal.Float()
 
 	return r3.Vector{
 		X: coordFromCell(cellX, offsetX),
@@ -416,12 +427,30 @@ func (e *Entity) readFields(r *reader, paths *[]*fieldPath) {
 	readFieldPaths(r, paths)
 
 	for _, fp := range *paths {
-		decoder := e.class.serializer.getDecoderForFieldPath(fp, 0)
+		f := e.class.serializer.getFieldForFieldPath(fp, 0)
+		name := e.class.getNameForFieldPath(fp)
+		decoder, base := e.class.serializer.getDecoderForFieldPath2(fp, 0)
 
 		val := decoder(r)
-		e.state.set(fp, val)
 
-		for _, h := range e.updateHandlers[e.class.getNameForFieldPath(fp)] {
+		if base && (f.model == fieldModelVariableArray || f.model == fieldModelVariableTable) {
+			oldFS := e.state.get(fp)
+			fs := newFieldState()
+
+			fs.state = make([]interface{}, val.(uint64))
+
+			if oldFS != nil {
+				copy(fs.state, oldFS.(*fieldState).state[:min(len(fs.state), len(oldFS.(*fieldState).state))])
+			}
+
+			e.state.set(fp, fs)
+
+			val = fs.state
+		} else {
+			e.state.set(fp, val)
+		}
+
+		for _, h := range e.updateHandlers[name] {
 			h(st.PropertyValue{
 				VectorVal: r3.Vector{},
 				IntVal:    0,
@@ -446,7 +475,7 @@ func (p *Parser) OnPacketEntities(m *msgs2.CSVCMsg_PacketEntities) error {
 		index   = int32(-1)
 		updates = int(m.GetUpdatedEntries())
 		cmd     uint32
-		classId int32
+		classID int32
 		serial  int32
 	)
 
@@ -485,25 +514,25 @@ func (p *Parser) OnPacketEntities(m *msgs2.CSVCMsg_PacketEntities) error {
 		}
 		if cmd&0x01 == 0 {
 			if cmd&0x02 != 0 {
-				classId = int32(r.readBits(p.classIdSize))
+				classID = int32(r.readBits(p.classIdSize))
 				serial = int32(r.readBits(17))
 				r.readVarUint32()
 
-				class := p.classesById[classId]
+				class := p.classesById[classID]
 				if class == nil {
-					_panicf("unable to find new class %d", classId)
-				}
-
-				baseline := p.classBaselines[classId]
-				if baseline == nil {
-					_panicf("unable to find new baseline %d", classId)
+					_panicf("unable to find new class %d", classID)
 				}
 
 				e = newEntity(index, serial, class)
 				p.entities[index] = e
 
-				e.readFields(newReader(baseline), &paths)
-				paths = paths[:0]
+				baseline := p.classBaselines[classID]
+
+				if baseline != nil {
+					// POV demos are missing some baselines?
+					e.readFields(newReader(baseline), &paths)
+					paths = paths[:0]
+				}
 
 				e.readFields(r, &paths)
 				paths = paths[:0]

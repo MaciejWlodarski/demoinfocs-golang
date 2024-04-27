@@ -240,6 +240,7 @@ func newGameEventHandler(parser *parser, ignoreBombsiteIndexNotFound bool) gameE
 		"item_remove":                     geh.itemRemove,                        // Dropped?
 		"jointeam_failed":                 nil,                                   // Dunno, only in locally recorded (POV) demos
 		"other_death":                     geh.otherDeath,                        // Other deaths, like chickens.
+		"player_activate":                 nil,                                   // CS2 POV demos
 		"player_blind":                    geh.playerBlind,                       // Player got blinded by a flash. Delayed because Player.FlashDuration hasn't been updated yet
 		"player_changename":               nil,                                   // Name change
 		"player_connect":                  geh.playerConnect,                     // Bot connected or player reconnected, players normally come in via string tables & data tables
@@ -577,12 +578,13 @@ func (geh gameEventHandler) playerHurt(data map[string]*msg.CSVCMsg_GameEventKey
 		armorDamageTaken = 100
 	}
 
-	if player != nil {
-		if health == 0 {
+	if player != nil && (!geh.parser.isSource2() || (player.PlayerPawnEntity() != nil)) {
+		// m_iHealth & m_ArmorValue check for CS2 POV demos
+		if health == 0 && (!geh.parser.isSource2() || player.PlayerPawnEntity().Property("m_iHealth") != nil) {
 			healthDamageTaken = player.Health()
 		}
 
-		if armor == 0 {
+		if armor == 0 && (!geh.parser.isSource2() || player.PlayerPawnEntity().Property("m_ArmorValue") != nil) {
 			armorDamageTaken = player.Armor()
 		}
 	}
@@ -736,11 +738,19 @@ func (geh gameEventHandler) playerConnect(data map[string]*msg.CSVCMsg_GameEvent
 }
 
 func (geh gameEventHandler) playerDisconnect(data map[string]*msg.CSVCMsg_GameEventKeyT) {
+	uid := int(data["userid"].GetValShort())
+	pl := geh.playerByUserID(uid)
+
 	if geh.parser.isSource2() {
+		if pl != nil && pl.IsBot {
+			geh.dispatch(events.PlayerDisconnected{
+				Player: pl,
+			})
+
+			pl.IsConnected = false
+		}
 		return
 	}
-
-	uid := int(data["userid"].GetValShort())
 
 	for k, v := range geh.parser.rawPlayers {
 		if v.UserID == uid {
@@ -748,7 +758,6 @@ func (geh gameEventHandler) playerDisconnect(data map[string]*msg.CSVCMsg_GameEv
 		}
 	}
 
-	pl := geh.playerByUserID(uid)
 	if pl != nil {
 		// Dispatch this event early since we delete the player on the next line
 		geh.dispatch(events.PlayerDisconnected{
