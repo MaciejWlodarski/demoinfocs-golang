@@ -2,14 +2,12 @@ package demoinfocs
 
 import (
 	"fmt"
-	"io"
 	"math"
 	"sync"
 	"time"
 
 	"github.com/golang/snappy"
 	"github.com/markus-wa/go-unassert"
-	dispatch "github.com/markus-wa/godispatch"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -137,18 +135,19 @@ func recoverFromUnexpectedEOF(r any) error {
 	if r == nil {
 		return nil
 	}
+	return nil
 
-	if r == io.ErrUnexpectedEOF || r == io.EOF {
-		return errors.Wrap(ErrUnexpectedEndOfDemo, "unexpected EOF")
-	}
+	// if r == io.ErrUnexpectedEOF || r == io.EOF {
+	// 	return errors.Wrap(ErrUnexpectedEndOfDemo, "unexpected EOF")
+	// }
 
-	switch err := r.(type) {
-	case dispatch.ConsumerCodePanic:
-		panic(err.Value())
+	// switch err := r.(type) {
+	// case dispatch.ConsumerCodePanic:
+	// panic(err.Value())
 
-	default:
-		panic(err)
-	}
+	// default:
+	// 	panic(err)
+	// }
 }
 
 // Cancel aborts ParseToEnd() and drains the internal event queues.
