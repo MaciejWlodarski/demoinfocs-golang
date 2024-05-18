@@ -31,7 +31,11 @@ func getFloat(entity st.Entity, propName string) float32 {
 		return 0
 	}
 
-	return entity.PropertyValueMust(propName).Float()
+	val, ok := entity.PropertyValue(propName)
+	if !ok {
+		return 0
+	}
+	return val.Float()
 }
 
 func getString(entity st.Entity, propName string) string {
@@ -47,5 +51,10 @@ func getBool(entity st.Entity, propName string) bool {
 		return false
 	}
 
-	return entity.PropertyValueMust(propName).BoolVal()
+	val, ok := entity.PropertyValue(propName)
+	if !ok {
+		return false
+	}
+
+	return val.BoolVal()
 }

@@ -619,6 +619,29 @@ func (p *Player) XpTrailLevel() int {
 	return getInt(p.Entity, "m_pInventoryServices.m_nPersonaDataXpTrailLevel")
 }
 
+func (p *Player) LeftHand() bool {
+	return getBool(p.PlayerPawnEntity(), "m_bLeftHanded")
+}
+
+func (p *Player) ViewModel() *ViewModel {
+	pawn := p.PlayerPawnEntity()
+	return &ViewModel{
+		LeftHand: p.LeftHand(),
+		OffsetX:  getFloat(pawn, "m_flViewmodelOffsetX"),
+		OffsetY:  getFloat(pawn, "m_flViewmodelOffsetY"),
+		OffsetZ:  getFloat(pawn, "m_flViewmodelOffsetZ"),
+		FOV:      getFloat(pawn, "m_flViewmodelFOV"),
+	}
+}
+
+type ViewModel struct {
+	LeftHand bool    `json:"left_hand"`
+	OffsetX  float32 `json:"offset_x"`
+	OffsetY  float32 `json:"offset_y"`
+	OffsetZ  float32 `json:"offset_z"`
+	FOV      float32 `json:"fov"`
+}
+
 type demoInfoProvider interface {
 	IngameTick() int   // current in-game tick, used for IsBlinded()
 	TickRate() float64 // in-game tick rate, used for Player.IsBlinded()

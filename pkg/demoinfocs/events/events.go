@@ -229,6 +229,11 @@ type WeaponReloadEnd struct {
 	Success bool
 }
 
+type HandSwitch struct {
+	Player *common.Player
+	Left   bool
+}
+
 // GrenadeEventIf is the interface for all GrenadeEvents (except GrenadeProjectile* events).
 // Used to catch the different events with the same handler.
 type GrenadeEventIf interface {

@@ -612,6 +612,19 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		}
 	})
 
+	if leftHandProp := pawnEntity.Property("m_bLeftHanded"); leftHandProp != nil {
+		leftHandProp.OnUpdate(func(val st.PropertyValue) {
+			pl := getPlayerFromPawnEntity(pawnEntity)
+			if pl == nil || p.gameState.ingameTick == 0 {
+				return
+			}
+			p.eventDispatcher.Dispatch(events.HandSwitch{
+				Player: pl,
+				Left:   val.BoolVal(),
+			})
+		})
+	}
+
 	if lifeStateProp := pawnEntity.Property("m_lifeState"); lifeStateProp != nil {
 		lifeStateProp.OnUpdate(func(val st.PropertyValue) {
 			pl := getPlayerFromPawnEntity(pawnEntity)
