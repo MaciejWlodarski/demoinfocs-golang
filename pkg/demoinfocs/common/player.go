@@ -187,6 +187,22 @@ func (p *Player) ActiveWeapon() *Equipment {
 	return p.demoInfoProvider.FindWeaponByEntityID(p.activeWeaponID())
 }
 
+func (p *Player) MainWeapon() *Equipment {
+	if p == nil {
+		return nil
+	}
+	max := 0
+	var weapon *Equipment
+	for _, wep := range p.Inventory {
+		class := int(wep.Type.Class())
+		if class >= 1 && class <= 4 && class > max {
+			max = int(wep.Type)
+			weapon = wep
+		}
+	}
+	return weapon
+}
+
 // Weapons returns all weapons in the player's possession.
 // Contains all entries from Player.Inventory but as a slice instead of a map.
 func (p *Player) Weapons() []*Equipment {
