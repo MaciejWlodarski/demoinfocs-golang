@@ -140,7 +140,7 @@ func (geh gameEventHandler) gameState() *gameState {
 
 func (geh gameEventHandler) playerByUserID(userID int) *common.Player {
 	player := geh.gameState().playersByUserID[userID]
-	if player != nil || !geh.parser.isSource2() {
+	if player != nil {
 		return player
 	}
 
@@ -153,7 +153,7 @@ func (geh gameEventHandler) playerByUserID(userID int) *common.Player {
 }
 
 func (geh gameEventHandler) playerByUserID32(userID int32) *common.Player {
-	if geh.parser.isSource2() && userID <= math.MaxUint16 {
+	if userID <= math.MaxUint16 {
 		userID &= 0xff
 	}
 
@@ -325,6 +325,7 @@ func (geh gameEventHandler) clearGrenadeProjectiles() {
 
 	// Thrown grenades could not be deleted at the end of the round (if they are thrown at the very end, they never get destroyed)
 	geh.gameState().thrownGrenades = make(map[*common.Player][]*common.Equipment)
+	geh.gameState().flyingFlashbangs = make([]*FlyingFlashbang, 0)
 }
 
 func (geh gameEventHandler) roundStart(data map[string]*msg.CSVCMsg_GameEventKeyT) {
@@ -749,31 +750,13 @@ func (geh gameEventHandler) playerConnect(data map[string]*msg.CSVCMsg_GameEvent
 
 func (geh gameEventHandler) playerDisconnect(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	uid := int(data["userid"].GetValShort())
-	if geh.parser.isSource2() && uid <= math.MaxUint16 {
+	if uid <= math.MaxUint16 {
 		uid &= 0xff
 	}
 
 	pl := geh.playerByUserID(uid)
 
-	if geh.parser.isSource2() {
-		if pl != nil && pl.IsBot {
-			geh.dispatch(events.PlayerDisconnected{
-				Player: pl,
-			})
-
-			pl.IsConnected = false
-		}
-		return
-	}
-
-	for k, v := range geh.parser.rawPlayers {
-		if v.UserID == uid {
-			delete(geh.parser.rawPlayers, k)
-		}
-	}
-
-	if pl != nil {
-		// Dispatch this event early since we delete the player on the next line
+	if pl != nil && pl.IsBot {
 		geh.dispatch(events.PlayerDisconnected{
 			Player: pl,
 		})
@@ -788,14 +771,11 @@ func (geh gameEventHandler) playerTeam(data map[string]*msg.CSVCMsg_GameEventKey
 
 	if player != nil {
 		if player.Team != newTeam {
-			if geh.parser.isSource2() {
-				// The "team" field may be incorrect with CS2 demos.
-				// As the prop m_iTeamNum (bound to player.Team) is updated before the game-event is fired we can force
-				// the correct team here.
-				// https://github.com/markus-wa/demoinfocs-golang/issues/494
-				newTeam = player.Team
-			}
-
+			// The "team" field may be incorrect with CS2 demos.
+			// As the prop m_iTeamNum (bound to player.Team) is updated before the game-event is fired we can force
+			// the correct team here.
+			// https://github.com/markus-wa/demoinfocs-golang/issues/494
+			newTeam = player.Team
 			player.Team = newTeam
 		}
 
@@ -1214,6 +1194,37 @@ func (p *parser) processRoundProgressEvents() {
 	p.dispatchMatchStartedEventIfNecessary()
 }
 
+func (p *parser) processFlyingFlashbangs() {
+	if len(p.gameState.flyingFlashbangs) == 0 {
+		return
+	}
+
+	flashbang := p.gameState.flyingFlashbangs[0]
+	if len(flashbang.flashedEntityIDs) == 0 {
+		// Flashbang exploded and didn't flash any players, remove it from the queue
+		if flashbang.explodedFrame > 0 && flashbang.explodedFrame < p.currentFrame {
+			p.gameState.flyingFlashbangs = p.gameState.flyingFlashbangs[1:]
+		}
+		return
+	}
+
+	for _, entityID := range flashbang.flashedEntityIDs {
+		player := p.gameState.Participants().ByEntityID()[entityID]
+		if player == nil {
+			continue
+		}
+
+		p.gameEventHandler.dispatch(events.FakePlayerFlashed{
+			Player:     player,
+			Attacker:   flashbang.projectile.Thrower,
+			Projectile: flashbang.projectile,
+			Duration:   player.FlashDuration,
+		})
+	}
+
+	p.gameState.flyingFlashbangs = p.gameState.flyingFlashbangs[1:]
+}
+
 // Do some processing to dispatch game events at the end of the frame in correct order.
 // This is necessary because some prop updates are not in a order that we would expect, e.g.:
 // - The player prop m_flFlashDuration is updated after the game event player_blind have been parsed (used for CS:GO only)
@@ -1223,6 +1234,7 @@ func (p *parser) processRoundProgressEvents() {
 // This makes sure game events are dispatched in a more expected order.
 func (p *parser) processFrameGameEvents() {
 	if p.isSource2() && !p.disableMimicSource1GameEvents {
+		p.processFlyingFlashbangs()
 		p.processRoundProgressEvents()
 	}
 

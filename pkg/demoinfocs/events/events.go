@@ -329,6 +329,13 @@ type PlayerFlashed struct {
 	Duration   float32
 }
 
+type FakePlayerFlashed struct {
+	Player     *common.Player // May be nil if the demo is partially corrupt (player is 'unconnected', see #156 and #172).
+	Attacker   *common.Player // May be nil if the demo is partially corrupt (player is 'unconnected', see #156 and #172).
+	Projectile *common.GrenadeProjectile
+	Duration   float32
+}
+
 // FlashDuration returns the duration of the blinding effect.
 // This is just a shortcut for Player.FlashDurationTime().
 func (e PlayerFlashed) FlashDuration() time.Duration {

@@ -403,7 +403,7 @@ func (p *parser) getOrCreatePlayer(entityID int, rp *common.PlayerInfo) (isNew b
 		userID = rp.UserID
 	}
 
-	if p.isSource2() && userID <= math.MaxUint16 {
+	if userID <= math.MaxUint16 {
 		userID &= 0xff
 	}
 
@@ -582,6 +582,15 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		}
 
 		pl.FlashDuration = val.Float()
+
+		if pl.FlashDuration > 0 {
+			if len(p.gameState.flyingFlashbangs) == 0 {
+				return
+			}
+
+			flashbang := p.gameState.flyingFlashbangs[0]
+			flashbang.flashedEntityIDs = append(flashbang.flashedEntityIDs, pl.EntityID)
+		}
 	})
 
 	pawnEntity.Property("m_pWeaponServices.m_hActiveWeapon").OnUpdate(func(val st.PropertyValue) {
@@ -831,6 +840,13 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 
 		p.gameEventHandler.addThrownGrenade(proj.Thrower, proj.WeaponInstance)
 
+		if wep == common.EqFlash {
+			p.gameState.flyingFlashbangs = append(p.gameState.flyingFlashbangs, &FlyingFlashbang{
+				projectile:       proj,
+				flashedEntityIDs: []int{},
+			})
+		}
+
 		if !p.disableMimicSource1GameEvents {
 			p.eventDispatcher.Dispatch(events.FakeWeaponFire{
 				Shooter: proj.Owner,
@@ -854,6 +870,13 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 					GrenadeEntityID: proj.Entity.ID(),
 				},
 			})
+
+			if len(p.gameState.flyingFlashbangs) == 0 {
+				return
+			}
+
+			flashbang := p.gameState.flyingFlashbangs[0]
+			flashbang.explodedFrame = p.currentFrame
 		}
 
 		p.nadeProjectileDestroyed(proj)

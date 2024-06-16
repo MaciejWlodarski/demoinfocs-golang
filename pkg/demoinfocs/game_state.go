@@ -63,8 +63,15 @@ type gameState struct {
 	// to this projectile. As all m_flFlashDuration prop updates occur during the same frame, we batch dispatch
 	// player-flashed events at the end of the frame if there are any.
 	// This slice acts like a FIFO queue, the first projectile inserted is the first one to be removed when it exploded.
-	smokes       map[int]*common.Smoke // Maps entity-IDs to active smokes.
-	wepsToRemove map[int]*common.Equipment
+	flyingFlashbangs []*FlyingFlashbang
+	smokes           map[int]*common.Smoke // Maps entity-IDs to active smokes.
+	wepsToRemove     map[int]*common.Equipment
+}
+
+type FlyingFlashbang struct {
+	projectile       *common.GrenadeProjectile
+	flashedEntityIDs []int
+	explodedFrame    int
 }
 
 type ingameTickNumber int
@@ -270,6 +277,7 @@ func newGameState(demoInfo demoInfoProvider) *gameState {
 		hostages:                 make(map[int]*common.Hostage),
 		entities:                 make(map[int]st.Entity),
 		thrownGrenades:           make(map[*common.Player][]*common.Equipment),
+		flyingFlashbangs:         make([]*FlyingFlashbang, 0),
 		rules: gameRules{
 			conVars: make(map[string]string),
 		},
