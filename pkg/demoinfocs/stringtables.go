@@ -521,13 +521,10 @@ func (p *parser) parseUserInfo(data []byte, playerIndex int) {
 		return
 	}
 
-	userId := userInfo.GetUserid()
-	userId &= ^(1 << 8)
-
 	playerInfo := common.PlayerInfo{
 		XUID:         xuid,
 		Name:         name,
-		UserID:       int(userId),
+		UserID:       int(userInfo.GetUserid()),
 		IsFakePlayer: userInfo.GetFakeplayer(),
 		IsHltv:       userInfo.GetIshltv(),
 		// Fields not available with CS2 demos
