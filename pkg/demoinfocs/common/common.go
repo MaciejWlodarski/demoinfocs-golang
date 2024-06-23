@@ -124,6 +124,9 @@ type Bomb struct {
 	// Contains the last location of the dropped or planted bomb.
 	LastOnGroundPosition r3.Vector
 	Carrier              *Player
+	Planted              bool
+	Defused              bool
+	InDefuse             bool
 }
 
 // Position returns the current position of the bomb.
@@ -135,6 +138,12 @@ func (b *Bomb) Position() r3.Vector {
 	}
 
 	return b.LastOnGroundPosition
+}
+
+func (b *Bomb) Reset() {
+	b.Planted = false
+	b.Defused = false
+	b.InDefuse = false
 }
 
 // TeamState contains a team's ID, score, clan name & country flag.

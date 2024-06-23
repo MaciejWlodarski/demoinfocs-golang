@@ -101,51 +101,35 @@ type PropertyValue struct {
 }
 
 func (v PropertyValue) R3Vec() r3.Vector {
-	if v.S2 {
-		fs := v.Any.([]float32)
+	fs := v.Any.([]float32)
 
-		return r3.Vector{
-			X: float64(fs[0]),
-			Y: float64(fs[1]),
-			Z: float64(fs[2]),
-		}
+	return r3.Vector{
+		X: float64(fs[0]),
+		Y: float64(fs[1]),
+		Z: float64(fs[2]),
 	}
-
-	return v.VectorVal
 }
 
 func (v PropertyValue) R3VecOrNil() *r3.Vector {
-	if v.S2 {
-		if v.Any == nil {
-			return nil
-		}
-
-		fs := v.Any.([]float32)
-
-		return &r3.Vector{
-			X: float64(fs[0]),
-			Y: float64(fs[1]),
-			Z: float64(fs[2]),
-		}
+	if v.Any == nil {
+		return nil
 	}
 
-	return &v.VectorVal
+	fs := v.Any.([]float32)
+
+	return &r3.Vector{
+		X: float64(fs[0]),
+		Y: float64(fs[1]),
+		Z: float64(fs[2]),
+	}
 }
 
 func (v PropertyValue) Int() int {
-	if v.S2 {
-		return int(v.Any.(int32))
-	}
-
-	return v.IntVal
+	return int(v.Any.(int32))
 }
 
 func (v PropertyValue) Int64() int64 {
-	if v.S2 {
-		return v.Any.(int64)
-	}
-
-	return v.Int64Val
+	return v.Any.(int64)
 }
 
 func (v PropertyValue) S2UInt64() uint64 {
@@ -161,31 +145,15 @@ func (v PropertyValue) S2UInt32() uint32 {
 }
 
 func (v PropertyValue) Handle() uint64 {
-	if v.S2 {
-		return v.S2UInt64()
-	}
-
-	if v.IntVal < 0 {
-		panic("Handle is negative")
-	}
-
-	return uint64(v.IntVal)
+	return v.S2UInt64()
 }
 
 func (v PropertyValue) Float() float32 {
-	if v.S2 {
-		return v.Any.(float32)
-	}
-
-	return v.FloatVal
+	return v.Any.(float32)
 }
 
 func (v PropertyValue) Str() string {
-	if v.S2 {
-		return v.Any.(string)
-	}
-
-	return v.StringVal
+	return v.Any.(string)
 }
 
 func (v PropertyValue) String() string {
@@ -194,11 +162,7 @@ func (v PropertyValue) String() string {
 
 // BoolVal returns true if IntVal > 0.
 func (v PropertyValue) BoolVal() bool {
-	if v.S2 {
-		return v.Any.(bool)
-	}
-
-	return v.IntVal > 0
+	return v.Any.(bool)
 }
 
 type propertyDecoder struct{}
