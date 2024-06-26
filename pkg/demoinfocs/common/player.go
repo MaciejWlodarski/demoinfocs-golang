@@ -195,11 +195,12 @@ func (p *Player) MainWeapon() *Equipment {
 	var weapon *Equipment
 	for _, wep := range p.Inventory {
 		class := int(wep.Type.Class())
-		if class >= 1 && class <= 4 && class > max {
+		if ((class >= 1 && class <= 4) || wep.Type == EqKnife) && class > max {
 			max = int(wep.Type.Class())
 			weapon = wep
 		}
 	}
+
 	return weapon
 }
 
