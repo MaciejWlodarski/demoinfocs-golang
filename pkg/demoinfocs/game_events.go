@@ -326,6 +326,7 @@ func (geh gameEventHandler) clearGrenadeProjectiles() {
 	// Thrown grenades could not be deleted at the end of the round (if they are thrown at the very end, they never get destroyed)
 	geh.gameState().thrownGrenades = make(map[*common.Player][]*common.Equipment)
 	geh.gameState().flyingFlashbangs = make([]*FlyingFlashbang, 0)
+	geh.gameState().flyingGrenades = make(map[int]bool)
 }
 
 func (geh gameEventHandler) roundStart(data map[string]*msg.CSVCMsg_GameEventKeyT) {
@@ -1046,6 +1047,10 @@ func (geh gameEventHandler) addThrownGrenade(p *common.Player, wep *common.Equip
 
 	gameState := geh.gameState()
 	gameState.thrownGrenades[p] = append(gameState.thrownGrenades[p], wep)
+}
+
+func (geh gameEventHandler) grenadeThrow(grenadeId int) {
+	geh.gameState().flyingGrenades[grenadeId] = true
 }
 
 func (geh gameEventHandler) getThrownGrenade(p *common.Player, wepType common.EquipmentType) *common.Equipment {

@@ -799,9 +799,13 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 			})
 		}
 
-		p.eventDispatcher.Dispatch(events.GrenadeProjectileThrow{
-			Projectile: proj,
-		})
+		projId := proj.Entity.ID()
+		if _, ok := p.gameState.flyingGrenades[projId]; !ok {
+			p.gameEventHandler.grenadeThrow(projId)
+			p.eventDispatcher.Dispatch(events.GrenadeProjectileThrow{
+				Projectile: proj,
+			})
+		}
 	})
 
 	entity.OnDestroy(func() {
@@ -863,7 +867,8 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 			}
 
 			bounceNumber := val.Int()
-			if bounceNumber != 0 {
+			if bounceNumber != proj.Bouces {
+				proj.Bouces = bounceNumber
 				p.eventDispatcher.Dispatch(events.GrenadeProjectileBounce{
 					Projectile: proj,
 					BounceNr:   bounceNumber,
@@ -902,6 +907,7 @@ func (p *parser) nadeProjectileDestroyed(proj *common.GrenadeProjectile) {
 	})
 
 	delete(p.gameState.grenadeProjectiles, proj.Entity.ID())
+	delete(p.gameState.flyingGrenades, proj.Entity.ID())
 
 	// We delete from the Owner.ThrownGrenades (only if not inferno or smoke, because they will be deleted when they expire)
 	isInferno := proj.WeaponInstance.Type == common.EqMolotov || proj.WeaponInstance.Type == common.EqIncendiary

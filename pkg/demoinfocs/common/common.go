@@ -72,6 +72,7 @@ type GrenadeProjectile struct {
 	Owner           *Player // Always seems to be the same as Thrower, even if the grenade was picked up
 	InitialPosition r3.Vector
 	InitialVelocity r3.Vector
+	Bouces          int
 
 	// Deprecated: use Trajectory2 instead
 	Trajectory []r3.Vector // List of all known locations of the grenade up to the current point
