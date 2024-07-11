@@ -403,7 +403,7 @@ func (e *Equipment) ZoomLevel() ZoomLevel {
 	}
 
 	value, ok := e.Entity.PropertyValue("m_zoomLevel")
-	if !ok {
+	if !ok || value.Any == nil {
 		return 0
 	}
 
@@ -448,7 +448,10 @@ func (e *Equipment) RecoilIndex() float32 {
 	}
 
 	// if the property doesn't exist we return 0 by default
-	val, _ := e.Entity.PropertyValue("m_flRecoilIndex")
+	val, ok := e.Entity.PropertyValue("m_flRecoilIndex")
+	if !ok || val.Any == nil {
+		return 0
+	}
 
 	return val.Float()
 }
@@ -469,7 +472,11 @@ func (e *Equipment) AccuracyPenalty() float32 {
 	if e.Entity == nil {
 		return 0
 	}
-	return e.Entity.Property("m_fAccuracyPenalty").Value().Float()
+	val, ok := e.Entity.PropertyValue("m_fAccuracyPenalty")
+	if !ok || val.Any == nil {
+		return 0
+	}
+	return val.Float()
 }
 
 func (e *Equipment) OwnerHandle() uint64 {

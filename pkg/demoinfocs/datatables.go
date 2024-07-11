@@ -985,6 +985,10 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	})
 
 	entity.Property("m_bInReload").OnUpdate(func(val st.PropertyValue) {
+		if val.Any == nil {
+			return
+		}
+
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
 		if owner != nil {
 			if val.BoolVal() {
@@ -1004,6 +1008,10 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	})
 
 	entity.Property("m_bReloadVisuallyComplete").OnUpdate(func(val st.PropertyValue) {
+		if val.Any == nil {
+			return
+		}
+
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
 		reload := val.BoolVal()
 		if !reload || owner == nil || !owner.IsReloading {
@@ -1062,8 +1070,15 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 }
 
 func (p *parser) bindNewInferno(entity st.Entity) {
-	throwerHandle := entity.PropertyValueMust("m_hOwnerEntity").Handle()
+	ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
+
+	if ownerEntVal.Any == nil {
+		return
+	}
+
+	throwerHandle := ownerEntVal.Handle()
 	thrower := p.gameState.Participants().FindByPawnHandle(throwerHandle)
+
 	inf := common.NewInferno(p.demoInfoProvider, entity, thrower)
 	p.gameState.infernos[entity.ID()] = inf
 
@@ -1096,8 +1111,15 @@ func (p *parser) infernoExpired(inf *common.Inferno) {
 }
 
 func (p *parser) bindNewSmoke(entity st.Entity) {
-	throwerHandle := entity.PropertyValueMust("m_hOwnerEntity").Handle()
+	ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
+
+	if ownerEntVal.Any == nil {
+		return
+	}
+
+	throwerHandle := ownerEntVal.Handle()
 	thrower := p.gameState.Participants().FindByPawnHandle(throwerHandle)
+
 	smk := common.NewSmoke(p.demoInfoProvider, entity, thrower)
 	p.gameState.smokes[entity.ID()] = smk
 
@@ -1106,6 +1128,10 @@ func (p *parser) bindNewSmoke(entity st.Entity) {
 	})
 
 	entity.Property("m_bDidSmokeEffect").OnUpdate(func(val st.PropertyValue) {
+		if val.Any == nil {
+			return
+		}
+
 		if val.BoolVal() {
 			smk.ActivationTick = p.demoInfoProvider.IngameTick()
 		}
