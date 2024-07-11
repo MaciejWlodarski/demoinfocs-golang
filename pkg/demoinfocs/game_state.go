@@ -94,9 +94,8 @@ func (gs *gameState) indexPlayerByUserID(pl *common.Player) {
 	}
 }
 
-func (gs *gameState) setPlayerLifeState(pl *common.Player) {
+func (gs *gameState) setPlayerLifeState(pl *common.Player, alive bool) {
 	pl = pl.ControlledPawn()
-	alive := pl.IsAlive()
 	if alive && pl.Alive != alive {
 		gs.demoInfo.parser.gameEventHandler.dispatch(events.PlayerSpawn{
 			Player: pl,
