@@ -587,12 +587,15 @@ func (geh gameEventHandler) playerHurt(data map[string]*msg.CSVCMsg_GameEventKey
 
 	if player != nil {
 		if health == 0 {
-			healthDamageTaken = player.Health()
+			healthDamageTaken = player.HealthValue
 		}
 
 		if armor == 0 {
-			armorDamageTaken = player.Armor()
+			armorDamageTaken = player.ArmorValue
 		}
+
+		player.HealthValue = health
+		player.ArmorValue = armor
 	}
 
 	geh.dispatch(events.PlayerHurt{

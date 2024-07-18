@@ -561,10 +561,21 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		if pl == nil {
 			return
 		}
+
+		pl.HealthValue = val.Int()
 		if val.Int() == 0 || pl.LifeState() == 0 {
 			p.gameState.setPlayerLifeState(pl, pl.IsAlive())
 			return
 		}
+	})
+
+	pawnEntity.Property("m_ArmorValue").OnUpdate(func(val st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil {
+			return
+		}
+
+		pl.ArmorValue = val.Int()
 	})
 
 	if leftHandProp := pawnEntity.Property("m_bLeftHanded"); leftHandProp != nil {
