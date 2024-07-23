@@ -562,7 +562,6 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			return
 		}
 
-		pl.HealthValue = val.Int()
 		if val.Int() == 0 || pl.LifeState() == 0 {
 			p.gameState.setPlayerLifeState(pl, pl.IsAlive())
 			return

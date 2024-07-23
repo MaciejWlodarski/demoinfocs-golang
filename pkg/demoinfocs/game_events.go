@@ -574,41 +574,16 @@ func (geh gameEventHandler) playerHurt(data map[string]*msg.CSVCMsg_GameEventKey
 
 	healthDamage := int(data["dmg_health"].GetValShort())
 	armorDamage := int(data["dmg_armor"].GetValByte())
-	healthDamageTaken := healthDamage
-	armorDamageTaken := armorDamage
-
-	if healthDamageTaken > 100 {
-		healthDamageTaken = 100
-	}
-
-	if armorDamageTaken > 100 {
-		armorDamageTaken = 100
-	}
-
-	if player != nil {
-		if health == 0 {
-			healthDamageTaken = player.HealthValue
-		}
-
-		if armor == 0 {
-			armorDamageTaken = player.ArmorValue
-		}
-
-		player.HealthValue = health
-		player.ArmorValue = armor
-	}
 
 	geh.dispatch(events.PlayerHurt{
-		Player:            player,
-		Attacker:          attacker,
-		Health:            health,
-		Armor:             armor,
-		HealthDamage:      healthDamage,
-		ArmorDamage:       armorDamage,
-		HealthDamageTaken: healthDamageTaken,
-		ArmorDamageTaken:  armorDamageTaken,
-		HitGroup:          events.HitGroup(data["hitgroup"].GetValByte()),
-		Weapon:            geh.getEquipmentInstance(attacker, wepType),
+		Player:       player,
+		Attacker:     attacker,
+		Health:       health,
+		Armor:        armor,
+		HealthDamage: healthDamage,
+		ArmorDamage:  armorDamage,
+		HitGroup:     events.HitGroup(data["hitgroup"].GetValByte()),
+		Weapon:       geh.getEquipmentInstance(attacker, wepType),
 	})
 }
 
