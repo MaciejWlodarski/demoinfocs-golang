@@ -406,7 +406,7 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 	pl := p.getOrCreatePlayerFromControllerEntity(controllerEntity)
 
 	controllerEntity.Property("m_hPawn").OnUpdate(func(val st.PropertyValue) {
-		p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+		p.gameState.setPlayerLifeState(pl, nil)
 	})
 
 	controllerEntity.Property("m_iConnected").OnUpdate(func(val st.PropertyValue) {
@@ -424,7 +424,7 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 			p.gameEventHandler.dispatch(events.PlayerDisconnected{
 				Player: pl,
 			})
-			p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+			p.gameState.setPlayerLifeState(pl, nil)
 			return
 		}
 
@@ -444,20 +444,22 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 				p.setRawPlayer(pl.EntityID-1, playerInfo)
 			}
 		}
-		p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+		p.gameState.setPlayerLifeState(pl, nil)
 	})
 
 	controllerEntity.Property("m_iTeamNum").OnUpdate(func(val st.PropertyValue) {
 		pl.Team = common.Team(val.S2UInt64())
 		pl.TeamState = p.gameState.Team(pl.Team)
 
-		p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+		p.gameState.setPlayerLifeState(pl, nil)
 	})
 
 	controllerEntity.OnDestroy(func() {
 		pl.IsConnected = false
 		delete(p.gameState.playersByEntityID, controllerEntity.ID())
-		p.gameState.setPlayerLifeState(pl, false)
+
+		alive := false
+		p.gameState.setPlayerLifeState(pl, &alive)
 	})
 }
 
@@ -481,7 +483,7 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 
 		player := getPlayerFromPawnEntity(pawnEntity)
 		if player != nil {
-			p.gameState.setPlayerLifeState(player, player.IsAlive())
+			p.gameState.setPlayerLifeState(player, nil)
 		}
 
 		if controllerHandle == prevControllerHandle {
@@ -494,7 +496,7 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		controllerEntity := p.gameState.playerControllerEntities[controllerEntityID]
 
 		pl := p.getOrCreatePlayerFromControllerEntity(controllerEntity)
-		p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+		p.gameState.setPlayerLifeState(pl, nil)
 
 		p.bindPlayerWeaponsS2(pawnEntity, pl)
 	})
@@ -563,18 +565,9 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		}
 
 		if val.Int() == 0 || pl.LifeState() == 0 {
-			p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+			p.gameState.setPlayerLifeState(pl, nil)
 			return
 		}
-	})
-
-	pawnEntity.Property("m_ArmorValue").OnUpdate(func(val st.PropertyValue) {
-		pl := getPlayerFromPawnEntity(pawnEntity)
-		if pl == nil {
-			return
-		}
-
-		pl.ArmorValue = val.Int()
 	})
 
 	if leftHandProp := pawnEntity.Property("m_bLeftHanded"); leftHandProp != nil {
@@ -596,7 +589,7 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			if pl == nil {
 				return
 			}
-			p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+			p.gameState.setPlayerLifeState(pl, nil)
 		})
 	}
 
@@ -606,7 +599,7 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			if pl == nil {
 				return
 			}
-			p.gameState.setPlayerLifeState(pl, pl.IsAlive())
+			p.gameState.setPlayerLifeState(pl, nil)
 		})
 	}
 
