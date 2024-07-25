@@ -1029,6 +1029,14 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	if _, ok := entity.PropertyValue("m_bJumpThrow"); ok {
 		entity.Property("m_bJumpThrow").OnUpdate(func(val st.PropertyValue) {
+			if val.Any != nil && val.BoolVal() {
+				owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
+
+				p.eventDispatcher.Dispatch(events.JumpThrow{
+					Player:         owner,
+					WeaponInstance: equipment,
+				})
+			}
 		})
 	}
 

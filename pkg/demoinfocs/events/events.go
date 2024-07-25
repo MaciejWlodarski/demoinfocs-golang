@@ -182,6 +182,11 @@ type FakePlayerSound struct {
 	Sound    Sound
 }
 
+type JumpThrow struct {
+	Player         *common.Player
+	WeaponInstance *common.Equipment
+}
+
 // Kill signals that a player has been killed.
 type Kill struct {
 	Weapon            *common.Equipment
