@@ -120,6 +120,13 @@ func (gs *gameState) setAlive(pl *common.Player, alive bool) {
 	gs.aliveByEntityID[pl.Entity.ID()] = pl
 }
 
+func getLastThrownGrenade(pl *common.Player, wepType common.EquipmentType) *common.Equipment {
+	if pl != nil && pl.LastThrownGrenade != nil && wepType == pl.LastThrownGrenade.Type {
+		return pl.LastThrownGrenade
+	}
+	return common.NewEquipment(wepType)
+}
+
 // IngameTick returns the latest actual tick number of the server during the game.
 //
 // Watch out, I've seen this return wonky negative numbers at the start of demos.

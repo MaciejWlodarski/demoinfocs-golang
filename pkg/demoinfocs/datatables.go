@@ -507,9 +507,6 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		if pl == nil {
 			return
 		}
-		if pl.IsAlive() {
-			pl.LastAlivePosition = pos
-		}
 	})
 
 	pawnEntity.Property("m_flFlashDuration").OnUpdate(func(val st.PropertyValue) {
@@ -773,8 +770,8 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 		}
 
 		// copy the weapon so it doesn't get overwritten by a new entity in parser.weapons
-		wepCopy := *(getPlayerWeapon(proj.Thrower, wep))
-		proj.WeaponInstance = &wepCopy
+		// wepCopy := *(getPlayerWeapon(proj.Thrower, wep))
+		proj.WeaponInstance = getLastThrownGrenade(proj.Thrower, wep)
 
 		unassert.NotNilf(proj.WeaponInstance, "couldn't find grenade instance for player")
 		if proj.WeaponInstance != nil {
@@ -954,6 +951,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	}
 
 	equipment.Entity = entity
+	equipment.EntityId = entityID
 	equipment.Skin = equipment.GetSkin()
 
 	// Used to detect when a player has been refunded for a weapon
@@ -1028,6 +1026,11 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 		owner.IsReloading = false
 	})
+
+	if _, ok := entity.PropertyValue("m_bJumpThrow"); ok {
+		entity.Property("m_bJumpThrow").OnUpdate(func(val st.PropertyValue) {
+		})
+	}
 
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())

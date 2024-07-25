@@ -312,14 +312,11 @@ const (
 // Equipment is a weapon / piece of equipment belonging to a player.
 // This also includes the skin and some additional data.
 type Equipment struct {
-	Type   EquipmentType // The type of weapon which the equipment instantiates.
-	Entity st.Entity     // The game entity instance
-	Owner  *Player       // The player carrying the equipment, not necessarily the buyer.
-	// E.g. 'models/weapons/w_rif_m4a1_s.mdl'.
-	// Used internally to differentiate alternative weapons (M4A4 / M4A1-S etc.) for Source 1 demos.
-	// It's always an empty string with Source 2 demos, you should use Type to know which weapon it is.
-	OriginalString string
-	Skin           *Skin
+	Type     EquipmentType // The type of weapon which the equipment instantiates.
+	Entity   st.Entity     // The game entity instance
+	EntityId int
+	Owner    *Player // The player carrying the equipment, not necessarily the buyer.
+	Skin     *Skin
 
 	uniqueID  int64 // Deprecated, use uniqueID2, see UniqueID() for why
 	uniqueID2 ulid.ULID
