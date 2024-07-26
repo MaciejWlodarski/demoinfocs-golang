@@ -476,6 +476,39 @@ func (e *Equipment) AccuracyPenalty() float32 {
 	return val.Float()
 }
 
+func (e *Equipment) JumpThrow() bool {
+	if e.Entity == nil {
+		return false
+	}
+	val, ok := e.Entity.PropertyValue("m_bJumpThrow")
+	if !ok || val.Any == nil {
+		return false
+	}
+	return val.BoolVal()
+}
+
+func (e *Equipment) ThrowStrength() float32 {
+	if e.Entity == nil {
+		return 0
+	}
+	val, ok := e.Entity.PropertyValue("m_flThrowStrength")
+	if !ok || val.Any == nil {
+		return 0
+	}
+	return val.Float()
+}
+
+func (e *Equipment) ThrowStrengthApproach() float32 {
+	if e.Entity == nil {
+		return 0
+	}
+	val, ok := e.Entity.PropertyValue("m_flThrowStrengthApproach")
+	if !ok || val.Any == nil {
+		return 0
+	}
+	return val.Float()
+}
+
 func (e *Equipment) OwnerHandle() uint64 {
 	val, ok := e.Entity.PropertyValue("m_hOwnerEntity")
 	if ok {
