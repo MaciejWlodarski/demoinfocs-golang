@@ -79,6 +79,10 @@ func (p *Player) GetTeam() Team {
 	return Team(0)
 }
 
+func (p *Player) GetTeamState() *TeamState {
+	return p.demoInfoProvider.TeamState(p.GetTeam())
+}
+
 func (p *Player) GetFlashDuration() float32 {
 	return p.PlayerPawnEntity().PropertyValueMust("m_flFlashDuration").Float()
 }
@@ -691,6 +695,7 @@ type demoInfoProvider interface {
 	PlayerResourceEntity() st.Entity
 	FindWeaponByEntityID(id int) *Equipment
 	FindEntityByHandle(handle uint64) st.Entity
+	TeamState(Team) *TeamState
 }
 
 // NewPlayer creates a *Player with an initialized equipment map.

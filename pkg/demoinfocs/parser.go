@@ -15,24 +15,13 @@ import (
 
 	bit "github.com/markus-wa/demoinfocs-golang/v4/internal/bitread"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
-	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msg"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 	st "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
+	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables2"
 )
 
 //go:generate ifacemaker -f parser.go -f parsing.go -s parser -i Parser -p demoinfocs -D -y "Parser is an auto-generated interface for Parser, intended to be used when mockability is needed." -c "DO NOT EDIT: Auto generated" -o parser_interface.go
-
-type sendTableParser interface {
-	ReadEnterPVS(r *bit.BitReader, index int, entities map[int]st.Entity, slot int) st.Entity
-	ServerClasses() st.ServerClasses
-	ParsePacket(b []byte) error
-	SetInstanceBaseline(classID int, data []byte)
-	OnDemoClassInfo(m *msgs2.CDemoClassInfo) error
-	OnServerInfo(m *msgs2.CSVCMsg_ServerInfo) error
-	OnPacketEntities(m *msgs2.CSVCMsg_PacketEntities) error
-	OnEntity(h st.EntityHandler)
-}
 
 type createStringTable struct {
 	*msgs2.CSVCMsg_CreateStringTable
@@ -68,7 +57,7 @@ type parser struct {
 	// Important fields
 
 	bitReader                       *bit.BitReader
-	stParser                        sendTableParser
+	stParser                        *sendtables2.Parser
 	additionalNetMessageCreators    map[int]NetMessageCreator // Map of net-message-IDs to NetMessageCreators (for parsing custom net-messages)
 	msgQueue                        chan any                  // Queue of net-messages
 	msgDispatcher                   *dp.Dispatcher            // Net-message dispatcher
@@ -308,15 +297,6 @@ func (p *parser) setError(err error) {
 	p.errLock.Unlock()
 }
 
-func (p *parser) poolBitReader(r *bit.BitReader) {
-	err := r.Pool()
-	if err != nil {
-		p.eventDispatcher.Dispatch(events.ParserWarn{
-			Message: err.Error(),
-		})
-	}
-}
-
 // NewParser creates a new Parser with the default configuration.
 // The demostream io.Reader (e.g. os.File or bytes.Reader) must provide demo data in the '.DEM' format.
 //
@@ -407,7 +387,6 @@ func NewParserWithConfig(demostream io.Reader, config ParserConfig) Parser {
 	p.eventDispatcher = dp.NewDispatcherWithConfig(dispatcherCfg)
 
 	// Attach proto msg handlers
-	p.msgDispatcher.RegisterHandler(p.handlePacketEntitiesS1)
 	p.msgDispatcher.RegisterHandler(p.handleGameEventList)
 	p.msgDispatcher.RegisterHandler(p.handleGameEvent)
 	p.msgDispatcher.RegisterHandler(p.handleCreateStringTableS1)
@@ -456,6 +435,10 @@ func (p demoInfoProvider) IsSource2() bool {
 
 func (p demoInfoProvider) IngameTick() int {
 	return p.parser.gameState.IngameTick()
+}
+
+func (p demoInfoProvider) TeamState(team common.Team) *common.TeamState {
+	return p.parser.gameState.Team(team)
 }
 
 func (p demoInfoProvider) TickRate() float64 {

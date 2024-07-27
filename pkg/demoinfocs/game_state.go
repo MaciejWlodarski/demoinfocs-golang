@@ -259,26 +259,26 @@ func (gs gameState) PlayerResourceEntity() st.Entity {
 	return gs.playerResourceEntity
 }
 
-func entityIDFromHandle(handle uint64, isS2 bool) int {
-	if isS2 {
-		if handle == constants.InvalidEntityHandleSource2 {
-			return -1
-		}
-
-		return int(handle & constants.EntityHandleIndexMaskSource2)
-	}
-
-	if handle == constants.InvalidEntityHandle {
+func entityIDFromHandle(handle uint64) int {
+	if handle == constants.InvalidEntityHandleSource2 {
 		return -1
 	}
 
-	return int(handle & constants.EntityHandleIndexMask)
+	return int(handle & constants.EntityHandleIndexMaskSource2)
 }
 
 // EntityByHandle returns the entity corresponding to the given handle.
 // Returns nil if the handle is invalid.
 func (gs gameState) EntityByHandle(handle uint64) st.Entity {
-	return gs.entities[entityIDFromHandle(handle, gs.demoInfo.parser.isSource2())]
+	if ent, ok := gs.entities[entityIDFromHandle(handle)]; ok && ent != nil {
+		return ent
+	}
+
+	if ent, ok := gs.demoInfo.parser.stParser.Entities()[int32(entityIDFromHandle(handle))]; ok && ent != nil {
+		return ent
+	}
+
+	return nil
 }
 
 func newGameState(demoInfo demoInfoProvider) *gameState {
@@ -491,7 +491,7 @@ func (ptcp participants) TeamMembers(team common.Team) []*common.Player {
 //
 // Returns nil if not found.
 func (ptcp participants) FindByPawnHandle(handle uint64) *common.Player {
-	entityID := entityIDFromHandle(handle, ptcp.getIsSource2())
+	entityID := entityIDFromHandle(handle)
 
 	for _, player := range ptcp.All() {
 		pawnEntity := player.PlayerPawnEntity()
@@ -513,7 +513,7 @@ func (ptcp participants) FindByPawnHandle(handle uint64) *common.Player {
 //
 // Returns nil if not found or if handle == invalidEntityHandle (used when referencing no entity).
 func (ptcp participants) FindByHandle64(handle uint64) *common.Player {
-	return ptcp.playersByEntityID[entityIDFromHandle(handle, ptcp.getIsSource2())]
+	return ptcp.playersByEntityID[entityIDFromHandle(handle)]
 }
 
 // FindByHandle attempts to find a player by his entity-handle.

@@ -56,8 +56,8 @@ func (p *parser) bindBomb() {
 		bombEntity.Property("m_bStartedArming").OnUpdate(func(val st.PropertyValue) {
 			if val.BoolVal() {
 				planterHandle := bombEntity.PropertyValueMust("m_hOwnerEntity").Handle()
-				ctlHandle := p.gameState.entities[entityIDFromHandle(planterHandle, true)].PropertyValueMust("m_hController").Handle()
-				ctlID := p.gameState.entities[entityIDFromHandle(ctlHandle, true)].ID()
+				ctlHandle := p.gameState.entities[entityIDFromHandle(planterHandle)].PropertyValueMust("m_hController").Handle()
+				ctlID := p.gameState.entities[entityIDFromHandle(ctlHandle)].ID()
 				planter := p.gameState.playersByEntityID[ctlID]
 				if !planter.IsPlanting {
 					planter.IsPlanting = true

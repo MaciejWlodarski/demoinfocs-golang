@@ -99,6 +99,10 @@ func (p *Parser) ServerClasses() st.ServerClasses {
 	return (*serverClasses)(p)
 }
 
+func (p *Parser) Entities() map[int32]*Entity {
+	return p.entities
+}
+
 func NewParser() *Parser {
 	return &Parser{
 		serializers:    make(map[string]*serializer),

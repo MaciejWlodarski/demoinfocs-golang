@@ -16,44 +16,6 @@ import (
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
 )
 
-func (p *parser) handlePacketEntitiesS1(pe *msg.CSVCMsg_PacketEntities) {
-	defer func() {
-		p.setError(recoverFromUnexpectedEOF(recover()))
-	}()
-
-	r := bit.NewSmallBitReader(bytes.NewReader(pe.EntityData))
-
-	entityIndex := -1
-
-	for i := 0; i < int(pe.GetUpdatedEntries()); i++ {
-		entityIndex += 1 + int(r.ReadUBitInt())
-
-		//nolint:nestif
-		if r.ReadBit() {
-			// FHDR_LEAVEPVS => LeavePVS
-			if r.ReadBit() {
-				// FHDR_LEAVEPVS | FHDR_DELETE => LeavePVS with force delete. Should never happen on full update
-				if existingEntity := p.gameState.entities[entityIndex]; existingEntity != nil {
-					existingEntity.Destroy()
-					delete(p.gameState.entities, entityIndex)
-				}
-			}
-		} else if r.ReadBit() {
-			// FHDR_ENTERPVS => EnterPVS
-			p.gameState.entities[entityIndex] = p.stParser.ReadEnterPVS(r, entityIndex, p.gameState.entities, p.recordingPlayerSlot)
-		} else {
-			// Delta update
-			if p.gameState.entities[entityIndex] != nil {
-				p.gameState.entities[entityIndex].ApplyUpdate(r)
-			} else {
-				panic(fmt.Sprintf("Entity with index %d doesn't exist but got an update", entityIndex))
-			}
-		}
-	}
-
-	p.poolBitReader(r)
-}
-
 func (p *parser) onEntity(e sendtables.Entity, op sendtables.EntityOp) error {
 	if op&sendtables.EntityOpCreated > 0 {
 		p.gameState.entities[e.ID()] = e
