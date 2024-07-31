@@ -520,6 +520,10 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			pl.FlashTick = p.gameState.ingameTick
 		}
 
+		if pl.FlashDuration >= val.Float() {
+			return
+		}
+
 		pl.FlashDuration = val.Float()
 
 		if pl.FlashDuration > 0 {
@@ -780,23 +784,24 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 
 		p.gameEventHandler.addThrownGrenade(proj.Thrower, proj.WeaponInstance)
 
-		if wep == common.EqFlash {
-			p.gameState.flyingFlashbangs = append(p.gameState.flyingFlashbangs, &FlyingFlashbang{
-				projectile:       proj,
-				flashedEntityIDs: []int{},
-			})
-		}
-
-		if !p.disableMimicSource1GameEvents {
-			p.eventDispatcher.Dispatch(events.FakeWeaponFire{
-				Shooter: proj.Owner,
-				Weapon:  proj.WeaponInstance,
-			})
-		}
-
 		projId := proj.Entity.ID()
 		if _, ok := p.gameState.flyingGrenades[projId]; !ok {
 			p.gameEventHandler.grenadeThrow(projId)
+
+			if wep == common.EqFlash {
+				p.gameState.flyingFlashbangs = append(p.gameState.flyingFlashbangs, &FlyingFlashbang{
+					projectile:       proj,
+					flashedEntityIDs: []int{},
+				})
+			}
+
+			if !p.disableMimicSource1GameEvents {
+				p.eventDispatcher.Dispatch(events.FakeWeaponFire{
+					Shooter: proj.Owner,
+					Weapon:  proj.WeaponInstance,
+				})
+			}
+
 			p.eventDispatcher.Dispatch(events.GrenadeProjectileThrow{
 				Projectile: proj,
 			})
@@ -804,7 +809,8 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	})
 
 	entity.OnDestroy(func() {
-		if wep == common.EqFlash && !p.disableMimicSource1GameEvents {
+		_, ok := p.gameState.flyingGrenades[entity.ID()]
+		if !ok && wep == common.EqFlash && !p.disableMimicSource1GameEvents {
 			p.gameEventHandler.dispatch(events.FlashExplode{
 				GrenadeEvent: events.GrenadeEvent{
 					GrenadeType:     common.EqFlash,

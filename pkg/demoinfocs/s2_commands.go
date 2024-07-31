@@ -3,6 +3,7 @@ package demoinfocs
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -318,9 +319,9 @@ func (p *parser) handleDemoPacket(pack *msgs2.CDemoPacket) {
 		ms = append(ms, pendingMessage{t, buf})
 	}
 
-	// sort.Slice(ms, func(i, j int) bool {
-	// 	return ms[i].priority() < ms[j].priority() // TODO: taken from dotabuff/manta. do we really need this?
-	// })
+	sort.SliceStable(ms, func(i, j int) bool {
+		return ms[i].priority() < ms[j].priority()
+	})
 
 	for _, m := range ms {
 		var msgCreator NetMessageCreator
