@@ -178,8 +178,6 @@ func (e *Entity) ApplyUpdate(reader *bit.BitReader) {
 }
 
 const (
-	serverClassPlayer = "CCSPlayerPawn"
-
 	propCellX = "CBodyComponent.m_cellX"
 	propCellY = "CBodyComponent.m_cellY"
 	propCellZ = "CBodyComponent.m_cellZ"
@@ -187,10 +185,6 @@ const (
 	propVecY  = "CBodyComponent.m_vecY"
 	propVecZ  = "CBodyComponent.m_vecZ"
 )
-
-func (e *Entity) isPlayer() bool {
-	return e.class.name == serverClassPlayer
-}
 
 // Returns a coordinate from a cell + offset
 func coordFromCell(cell uint64, offset float32) float64 {
@@ -604,10 +598,6 @@ func (p *Parser) OnPacketEntities(m *msgs2.CSVCMsg_PacketEntities) error {
 				}
 			}
 		}
-	}
-
-	if r.remBytes() > 1 || r.bitCount > 7 {
-		// FIXME: maybe we should panic("didn't consume all data")
 	}
 
 	return nil
