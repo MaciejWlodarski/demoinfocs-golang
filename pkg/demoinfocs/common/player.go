@@ -566,7 +566,6 @@ func (p *Player) ClanTag() string {
 // CrosshairCode returns the player's crosshair code or an empty string if there isn't one.
 func (p *Player) CrosshairCode() string {
 	return getString(p.Entity, "m_szCrosshairCodes")
-
 }
 
 // Ping returns the players latency to the game server.

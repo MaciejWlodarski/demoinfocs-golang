@@ -1178,6 +1178,7 @@ func (p *parser) bindGameRules() {
 		}
 
 		p.gameState.rules.entity = entity
+		lastEndReason := -1
 
 		roundTime := entity.PropertyValueMust(grPrefix("m_iRoundTime")).Int()
 		hasRescueZone := entity.PropertyValueMust(grPrefix("m_bMapHasRescueZone")).BoolVal()
@@ -1189,7 +1190,7 @@ func (p *parser) bindGameRules() {
 			}
 
 			p.gameEventHandler.clearGrenadeProjectiles()
-			p.delayedEventHandlers = make([]func(), 0)
+			// p.delayedEventHandlers = make([]func(), 0)
 
 			for _, player := range p.gameState.playersByEntityID {
 				player.IsPlanting = false
@@ -1311,7 +1312,13 @@ func (p *parser) bindGameRules() {
 				return
 			}
 
-			reason := events.RoundEndReason(val.Int())
+			propVal := val.Int()
+			if propVal == lastEndReason {
+				return
+			}
+			lastEndReason = propVal
+
+			reason := events.RoundEndReason(propVal)
 			if reason == events.RoundEndReasonStillInProgress {
 				dispatchRoundStart()
 				return

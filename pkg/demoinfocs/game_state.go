@@ -101,16 +101,15 @@ func (gs *gameState) setPlayerLifeState(pl *common.Player, alive *bool) {
 		alive = &isAlive
 	}
 
-	if *alive && pl.Alive != *alive {
-		gs.demoInfo.parser.gameEventHandler.dispatch(events.PlayerSpawn{
-			Player: pl,
-		})
-	}
-
 	gs.setAlive(pl, *alive)
 }
 
 func (gs *gameState) setAlive(pl *common.Player, alive bool) {
+	var playerSpawn bool
+	if alive && !pl.Alive {
+		playerSpawn = true
+	}
+
 	pl.Alive = alive
 	if pl.Entity == nil || !alive {
 		clear(pl.Inventory)
@@ -118,6 +117,14 @@ func (gs *gameState) setAlive(pl *common.Player, alive bool) {
 		return
 	}
 	gs.aliveByEntityID[pl.Entity.ID()] = pl
+
+	if playerSpawn {
+		gs.demoInfo.parser.delayedEventHandlers = append(gs.demoInfo.parser.delayedEventHandlers, func() {
+			gs.demoInfo.parser.gameEventHandler.dispatch(events.PlayerSpawn{
+				Player: pl,
+			})
+		})
+	}
 }
 
 func getLastThrownGrenade(pl *common.Player, wepType common.EquipmentType) *common.Equipment {
