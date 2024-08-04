@@ -234,6 +234,12 @@ type WeaponReloadEnd struct {
 	Success bool
 }
 
+type ItemEvent struct {
+	State int
+	Owner *common.Player
+	Item  *common.Equipment
+}
+
 type HandSwitch struct {
 	Player *common.Player
 	Left   bool

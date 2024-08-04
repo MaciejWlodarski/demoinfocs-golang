@@ -365,31 +365,8 @@ func (e *Equipment) AmmoInMagazine() int {
 			return -1
 		}
 
-		s1Ammo, isSource1 := val.Any.(int)
-		if isSource1 {
-			// need to subtract 1 as m_iClip1 is nrOfBullets + 1
-			return s1Ammo - 1
-		}
-
 		return int(val.S2UInt32())
 	}
-}
-
-// AmmoType returns the weapon's ammo type, mostly (only?) relevant for grenades.
-// Works with Source 1 demos only, it's always 0 with Source 2 demos.
-// It looks like the prop is not present with Source 2 and we don't need it anymore to retrieve the ammo reserve as
-// there is a new dedicated prop "m_pReserveAmmo".
-func (e *Equipment) AmmoType() int {
-	if e.Entity == nil {
-		return 0
-	}
-
-	value, ok := e.Entity.PropertyValue("LocalWeaponData.m_iPrimaryAmmoType")
-	if !ok {
-		return 0
-	}
-
-	return value.Int()
 }
 
 // ZoomLevel returns how far the player has zoomed in on the weapon.
@@ -408,34 +385,42 @@ func (e *Equipment) ZoomLevel() ZoomLevel {
 }
 
 // AmmoReserve returns the ammo left available for reloading.
-// Returns CWeaponCSBase.m_iPrimaryReserveAmmoCount for most weapons and 'Owner.AmmoLeft[AmmoType] - 1' for grenades.
 // Use AmmoInMagazine() + AmmoReserve() to quickly get the amount of grenades a player owns.
 func (e *Equipment) AmmoReserve() int {
 	if e.Entity == nil {
 		return 0
 	}
 
-	s2Prop := e.Entity.Property("m_pReserveAmmo.0000")
-	if s2Prop != nil {
-		if s2Prop.Value().Any != nil {
-			return s2Prop.Value().Int()
-		}
-		return 0
-	}
-
 	if e.Class() == EqClassGrenade {
-		if e.Owner != nil {
-			// minus one for 'InMagazine'
-			return e.Owner.AmmoLeft[e.AmmoType()] - 1
+		var ammoProp st.PropertyValue
+		ok := false
+		pawnEntity := e.Owner.PlayerPawnEntity()
+
+		switch e.Type {
+		case EqDecoy:
+			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0017")
+		case EqMolotov:
+			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
+		case EqIncendiary:
+			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
+		case EqFlash:
+			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0014")
+		case EqSmoke:
+			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0015")
+		case EqHE:
+			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0013")
 		}
 
-		return 0
+		if !ok || ammoProp.Any == nil {
+			return 0
+		}
+		return int(ammoProp.S2UInt64())
 	}
 
-	// if the property doesn't exist we return 0 by default
-	val, _ := e.Entity.PropertyValue("m_iPrimaryReserveAmmoCount")
-
-	return val.IntVal
+	if propVal, ok := e.Entity.PropertyValue("m_pReserveAmmo.0000"); ok && propVal.Any != nil {
+		return propVal.Int()
+	}
+	return 0
 }
 
 // RecoilIndex returns the weapon's recoil index

@@ -514,17 +514,19 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		if pl == nil {
 			return
 		}
-		if val.Float() == 0 {
+		valFloat := val.Float()
+
+		if valFloat == 0 {
 			pl.FlashTick = 0
 		} else {
 			pl.FlashTick = p.gameState.ingameTick
 		}
 
-		if pl.FlashDuration >= val.Float() {
+		if valFloat == pl.FlashDuration {
 			return
 		}
 
-		pl.FlashDuration = val.Float()
+		pl.FlashDuration = valFloat
 
 		if pl.FlashDuration > 0 {
 			if len(p.gameState.flyingFlashbangs) == 0 {
@@ -1046,8 +1048,26 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		})
 	}
 
+	entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
+		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
+		p.delayedEventHandlers = append(p.delayedEventHandlers, func() {
+			p.eventDispatcher.Dispatch(events.ItemEvent{
+				State: int(val.S2UInt32()),
+				Owner: owner,
+				Item:  equipment,
+			})
+		})
+	})
+
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
+		p.delayedEventHandlers = append(p.delayedEventHandlers, func() {
+			p.eventDispatcher.Dispatch(events.ItemEvent{
+				State: -1,
+				Owner: owner,
+				Item:  equipment,
+			})
+		})
 		if owner != nil && owner.IsInBuyZone() && p.GameState().IngameTick() == lastMoneyUpdateTick && lastMoneyIncreased {
 			p.eventDispatcher.Dispatch(events.ItemRefund{
 				Player: owner,

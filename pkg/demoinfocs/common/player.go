@@ -63,6 +63,10 @@ func (p *Player) PlayerPawnEntity() st.Entity {
 	return p.demoInfoProvider.FindEntityByHandle(playerPawn.Handle())
 }
 
+func (p *Player) DemoInfo() demoInfoProvider {
+	return p.demoInfoProvider
+}
+
 func (p *Player) GetTeam() Team {
 	if p == nil {
 		return Team(0)
@@ -695,6 +699,7 @@ type demoInfoProvider interface {
 	FindWeaponByEntityID(id int) *Equipment
 	FindEntityByHandle(handle uint64) st.Entity
 	TeamState(Team) *TeamState
+	PlayersAliveByEntityID() map[int]*Player
 }
 
 // NewPlayer creates a *Player with an initialized equipment map.
