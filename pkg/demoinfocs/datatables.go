@@ -1050,23 +1050,22 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		p.delayedEventHandlers = append(p.delayedEventHandlers, func() {
-			p.eventDispatcher.Dispatch(events.ItemEvent{
-				State: int(val.S2UInt32()),
-				Owner: owner,
-				Item:  equipment,
-			})
+		p.eventDispatcher.Dispatch(events.ItemEvent{
+			State: int(val.S2UInt32()),
+			Owner: owner,
+			Item:  equipment,
 		})
 	})
 
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		p.delayedEventHandlers = append(p.delayedEventHandlers, func() {
-			p.eventDispatcher.Dispatch(events.ItemEvent{
-				State: -1,
-				Owner: owner,
-				Item:  equipment,
-			})
+		if owner != nil && owner.PlayerPawnEntity() == nil {
+			fmt.Println(owner)
+		}
+		p.eventDispatcher.Dispatch(events.ItemEvent{
+			State: -1,
+			Owner: owner,
+			Item:  equipment,
 		})
 		if owner != nil && owner.IsInBuyZone() && p.GameState().IngameTick() == lastMoneyUpdateTick && lastMoneyIncreased {
 			p.eventDispatcher.Dispatch(events.ItemRefund{

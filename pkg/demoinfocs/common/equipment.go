@@ -392,6 +392,10 @@ func (e *Equipment) AmmoReserve() int {
 	}
 
 	if e.Class() == EqClassGrenade {
+		if e.Owner == nil {
+			return 0
+		}
+
 		var ammoProp st.PropertyValue
 		ok := false
 		pawnEntity := e.Owner.PlayerPawnEntity()
