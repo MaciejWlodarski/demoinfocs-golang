@@ -72,19 +72,14 @@ func (p *Player) GetTeam() Team {
 		return Team(0)
 	}
 
-	pawn := p.PlayerPawnEntity()
-	if pawn == nil {
-		return Team(0)
-	}
-
-	if propVal, ok := p.PlayerPawnEntity().PropertyValue("m_iTeamNum"); ok {
+	if propVal, ok := p.Entity.PropertyValue("m_iTeamNum"); ok {
 		return Team(propVal.S2UInt64())
 	}
 	return Team(0)
 }
 
 func (p *Player) GetTeamState() *TeamState {
-	return p.demoInfoProvider.TeamState(p.GetTeam())
+	return p.demoInfoProvider.TeamState(p.Team)
 }
 
 func (p *Player) GetFlashDuration() float32 {
@@ -360,12 +355,12 @@ func (p *Player) IsControllingBot() bool {
 
 // ControlledPawn returns the player instance of the pawn that the player is controlling, if any.
 func (p *Player) ControlledPawn() *Player {
-	if p.Entity == nil {
+	if p.Entity == nil || !p.IsControllingBot() {
 		return p
 	}
 
 	playerPawn, exists := p.Entity.PropertyValue("m_hOriginalControllerOfCurrentPawn")
-	if !exists || !p.IsControllingBot() {
+	if !exists {
 		return p
 	}
 
