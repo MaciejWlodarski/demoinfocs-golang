@@ -67,6 +67,7 @@ type gameState struct {
 	smokes           map[int]*common.Smoke // Maps entity-IDs to active smokes.
 	wepsToRemove     map[int]*common.Equipment
 	flyingGrenades   map[int]bool
+	defuseKits       map[int]*common.Equipment
 }
 
 type FlyingFlashbang struct {
@@ -305,6 +306,7 @@ func newGameState(demoInfo demoInfoProvider) *gameState {
 		thrownGrenades:           make(map[*common.Player][]*common.Equipment),
 		flyingFlashbangs:         make([]*FlyingFlashbang, 0),
 		flyingGrenades:           make(map[int]bool),
+		defuseKits:               make(map[int]*common.Equipment),
 		rules: gameRules{
 			conVars: make(map[string]string),
 		},

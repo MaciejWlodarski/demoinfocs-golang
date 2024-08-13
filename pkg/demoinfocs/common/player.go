@@ -31,15 +31,8 @@ type Player struct {
 	IsReloading           bool
 	IsUnknown             bool      // Used to identify unknown/broken players. see https://github.com/markus-wa/demoinfocs-golang/issues/162
 	PreviousFramePosition r3.Vector // CS2 only, used to compute velocity as it's not networked in CS2 demos
-	Distance              Distance  // Distance since last freezetime end
 	Alive                 bool      // True if player is alive
 	LastThrownGrenade     *Equipment
-}
-
-type Distance struct {
-	Running float64
-	Walking float64
-	Ducking float64
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {
@@ -365,14 +358,6 @@ func (p *Player) ControlledPawn() *Player {
 	}
 
 	return p.demoInfoProvider.FindPlayerByHandle(playerPawn.S2UInt64())
-}
-
-func GetControlledPawn(player *Player) *Player {
-	if player == nil {
-		return player
-	}
-
-	return player.ControlledPawn()
 }
 
 // Controller returns the player instance of the controller that the is controlling player, if any.

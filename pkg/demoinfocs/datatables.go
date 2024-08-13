@@ -454,6 +454,15 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 		p.gameState.setPlayerLifeState(pl, nil)
 	})
 
+	controllerEntity.Property("m_hOriginalControllerOfCurrentPawn").OnUpdate(func(val st.PropertyValue) {
+		ogController := p.demoInfoProvider.FindPlayerByHandle(val.S2UInt64())
+		if ogController != nil && pl != ogController && pl.IsBot {
+			p.eventDispatcher.Dispatch(events.BotTakenOver{
+				Taker: ogController,
+			})
+		}
+	})
+
 	controllerEntity.OnDestroy(func() {
 		pl.IsConnected = false
 		delete(p.gameState.playersByEntityID, controllerEntity.ID())
@@ -507,6 +516,42 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		if pl == nil {
 			return
 		}
+	})
+
+	pawnEntity.Property("m_pItemServices.m_bHasDefuser").OnUpdate(func(pv st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil {
+			return
+		}
+
+		p.eventDispatcher.Dispatch(events.DefuseKitUpdate{
+			Player: pl,
+			HasKit: pv.BoolVal(),
+		})
+	})
+
+	pawnEntity.Property("m_pItemServices.m_bHasHelmet").OnUpdate(func(pv st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil {
+			return
+		}
+
+		p.eventDispatcher.Dispatch(events.HelmetUpdate{
+			Player:    pl,
+			HasHelmet: pv.BoolVal(),
+		})
+	})
+
+	pawnEntity.Property("m_ArmorValue").OnUpdate(func(pv st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil {
+			return
+		}
+
+		p.eventDispatcher.Dispatch(events.ArmorUpdate{
+			Player: pl,
+			Armor:  pv.Int(),
+		})
 	})
 
 	pawnEntity.Property("m_flFlashDuration").OnUpdate(func(val st.PropertyValue) {
@@ -743,6 +788,8 @@ func (p *parser) bindWeapons() {
 
 	p.stParser.ServerClasses().FindByName("CInferno").OnEntityCreated(p.bindNewInferno)
 	p.stParser.ServerClasses().FindByName("CSmokeGrenadeProjectile").OnEntityCreated(p.bindNewSmoke)
+
+	p.stParser.ServerClasses().FindByName("CBaseAnimGraph").OnEntityCreated(p.bindDefuseKit)
 }
 
 // bindGrenadeProjectiles keeps track of the location of live grenades (parser.gameState.grenadeProjectiles), actively thrown by players.
@@ -1050,7 +1097,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		p.eventDispatcher.Dispatch(events.ItemEvent{
+		p.eventDispatcher.Dispatch(events.ItemUpdate{
 			State: int(val.S2UInt32()),
 			Owner: owner,
 			Item:  equipment,
@@ -1062,7 +1109,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		if owner != nil && owner.PlayerPawnEntity() == nil {
 			fmt.Println(owner)
 		}
-		p.eventDispatcher.Dispatch(events.ItemEvent{
+		p.eventDispatcher.Dispatch(events.ItemUpdate{
 			State: -1,
 			Owner: owner,
 			Item:  equipment,
@@ -1177,15 +1224,36 @@ func (p *parser) bindNewSmoke(entity st.Entity) {
 	})
 }
 
-// Separate function because we also use it in round_officially_ended (issue #42)
-func (p *parser) smokeExpired(inf *common.Smoke) {
-	// If the smoke entity is destroyed AFTER round_officially_ended
-	// we already executed this code when we received that event.
-	if _, exists := p.gameState.smokes[inf.Entity.ID()]; !exists {
+func (p *parser) smokeExpired(smk *common.Smoke) {
+	if _, exists := p.gameState.smokes[smk.Entity.ID()]; !exists {
 		return
 	}
 
-	delete(p.gameState.smokes, inf.Entity.ID())
+	delete(p.gameState.smokes, smk.Entity.ID())
+}
+
+func (p *parser) bindDefuseKit(entity st.Entity) {
+	dk := common.NewEquipment(common.EqDefuseKit)
+	dk.Entity = entity
+	dk.EntityId = entity.ID()
+
+	entity.OnCreateFinished(func() {
+		if _, exists := p.gameState.defuseKits[dk.EntityId]; !exists {
+			p.gameState.defuseKits[dk.EntityId] = dk
+		}
+	})
+
+	entity.OnDestroy(func() {
+		p.defuseKitDestroyed(dk)
+	})
+}
+
+func (p *parser) defuseKitDestroyed(dk *common.Equipment) {
+	if _, exists := p.gameState.defuseKits[dk.Entity.ID()]; !exists {
+		return
+	}
+
+	delete(p.gameState.defuseKits, dk.Entity.ID())
 }
 
 //nolint:funlen
@@ -1208,8 +1276,11 @@ func (p *parser) bindGameRules() {
 				p.gameEventHandler.dispatch(events.RoundEndOfficial{})
 			}
 
-			p.gameEventHandler.clearGrenadeProjectiles()
 			// p.delayedEventHandlers = make([]func(), 0)
+			p.gameEventHandler.clearGrenadeProjectiles()
+			for _, dk := range p.gameState.defuseKits {
+				p.defuseKitDestroyed(dk)
+			}
 
 			for _, player := range p.gameState.playersByEntityID {
 				player.IsPlanting = false

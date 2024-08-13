@@ -420,7 +420,6 @@ func (geh gameEventHandler) roundFreezeEnd(map[string]*msg.CSVCMsg_GameEventKeyT
 
 func (geh gameEventHandler) playerFootstep(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	player := geh.playerByUserID32(data["userid"].GetValShort())
-	player = common.GetControlledPawn(player)
 
 	geh.dispatch(events.Footstep{
 		Player: player,
@@ -436,7 +435,6 @@ func (geh gameEventHandler) playerFootstep(data map[string]*msg.CSVCMsg_GameEven
 
 func (geh gameEventHandler) playerJump(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	player := geh.playerByUserID32(data["userid"].GetValShort())
-	player = common.GetControlledPawn(player)
 
 	geh.dispatch(events.PlayerJump{
 		Player: player,
@@ -452,7 +450,6 @@ func (geh gameEventHandler) playerJump(data map[string]*msg.CSVCMsg_GameEventKey
 
 func (geh gameEventHandler) weaponZoom(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	player := geh.playerByUserID32(data["userid"].GetValShort())
-	player = common.GetControlledPawn(player)
 
 	geh.dispatch(events.WeaponZoom{
 		Player: player,
@@ -484,7 +481,7 @@ func (geh gameEventHandler) playerSound(data map[string]*msg.CSVCMsg_GameEventKe
 	}
 
 	geh.dispatch(events.PlayerSound{
-		Player:   common.GetControlledPawn(geh.playerByUserID32(data["userid"].GetValShort())),
+		Player:   geh.playerByUserID32(data["userid"].GetValShort()),
 		Duration: data["duration"].GetValFloat(),
 		Radius:   radius,
 		Sound:    sound,
@@ -502,8 +499,6 @@ func (geh gameEventHandler) playerSound(data map[string]*msg.CSVCMsg_GameEventKe
 
 func (geh gameEventHandler) weaponFire(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	shooter := geh.playerByUserID32(data["userid"].GetValShort())
-	shooter = common.GetControlledPawn(shooter)
-
 	wepType := common.MapEquipment(data["weapon"].GetValString())
 	wep := getPlayerWeapon(shooter, wepType)
 
@@ -552,19 +547,17 @@ func (geh gameEventHandler) weaponFire(data map[string]*msg.CSVCMsg_GameEventKey
 
 func (geh gameEventHandler) playerDeath(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	killer := geh.playerByUserID32(data["attacker"].GetValShort())
-	killer = common.GetControlledPawn(killer)
 
-	wepType := common.MapEquipment(data["weapon"].GetValString())
 	victimUserID := data["userid"].GetValShort()
 	victim := geh.playerByUserID32(data["userid"].GetValShort())
-	victim = common.GetControlledPawn(victim)
 
+	wepType := common.MapEquipment(data["weapon"].GetValString())
 	wepType = geh.attackerWeaponType(wepType, victimUserID)
 
 	geh.dispatch(events.Kill{
 		Victim:            victim,
 		Killer:            killer,
-		Assister:          common.GetControlledPawn(geh.playerByUserID32(data["assister"].GetValShort())),
+		Assister:          geh.playerByUserID32(data["assister"].GetValShort()),
 		IsHeadshot:        data["headshot"].GetValBool(),
 		PenetratedObjects: int(data["penetrated"].GetValShort()),
 		Weapon:            geh.getEquipmentInstance(killer, wepType),
@@ -579,10 +572,7 @@ func (geh gameEventHandler) playerDeath(data map[string]*msg.CSVCMsg_GameEventKe
 func (geh gameEventHandler) playerHurt(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	userID := data["userid"].GetValShort()
 	player := geh.playerByUserID32(userID)
-	player = common.GetControlledPawn(player)
-
 	attacker := geh.playerByUserID32(data["attacker"].GetValShort())
-	attacker = common.GetControlledPawn(attacker)
 
 	wepType := common.MapEquipment(data["weapon"].GetValString())
 	wepType = geh.attackerWeaponType(wepType, userID)

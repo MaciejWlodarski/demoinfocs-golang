@@ -234,10 +234,25 @@ type WeaponReloadEnd struct {
 	Success bool
 }
 
-type ItemEvent struct {
+type ItemUpdate struct {
 	State int
 	Owner *common.Player
 	Item  *common.Equipment
+}
+
+type DefuseKitUpdate struct {
+	Player *common.Player
+	HasKit bool
+}
+
+type HelmetUpdate struct {
+	Player    *common.Player
+	HasHelmet bool
+}
+
+type ArmorUpdate struct {
+	Player *common.Player
+	Armor  int
 }
 
 type HandSwitch struct {
