@@ -1490,24 +1490,10 @@ func (p *parser) bindGameRules() {
 		})
 
 		entity.Property(grPrefix("m_nTerroristTimeOuts")).OnUpdate(func(val st.PropertyValue) {
-			if p.gameState.tState.Timeouts > val.Int() {
-				p.gameState.tState.Timeouts = val.Int()
-				p.eventDispatcher.Dispatch(events.Timeout{
-					TeamState: &p.gameState.tState,
-				})
-				return
-			}
 			p.gameState.tState.Timeouts = val.Int()
 		})
 
 		entity.Property(grPrefix("m_nCTTimeOuts")).OnUpdate(func(val st.PropertyValue) {
-			if p.gameState.ctState.Timeouts > val.Int() {
-				p.gameState.ctState.Timeouts = val.Int()
-				p.eventDispatcher.Dispatch(events.Timeout{
-					TeamState: &p.gameState.ctState,
-				})
-				return
-			}
 			p.gameState.ctState.Timeouts = val.Int()
 		})
 

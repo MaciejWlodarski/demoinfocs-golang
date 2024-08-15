@@ -66,6 +66,7 @@ type GameState interface {
 	// PlayerResourceEntity returns the game's CCSPlayerResource entity.
 	// Contains scoreboard information and more.
 	PlayerResourceEntity() st.Entity
+	LastFreezeEnd() int
 	// EntityByHandle returns the entity corresponding to the given handle.
 	// Returns nil if the handle is invalid.
 	EntityByHandle(handle uint64) st.Entity

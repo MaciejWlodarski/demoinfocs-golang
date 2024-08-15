@@ -68,6 +68,7 @@ type gameState struct {
 	wepsToRemove     map[int]*common.Equipment
 	flyingGrenades   map[int]bool
 	defuseKits       map[int]*common.Equipment
+	lastFreezeEnd    int
 }
 
 type FlyingFlashbang struct {
@@ -267,6 +268,10 @@ func (gs gameState) PlayerResourceEntity() st.Entity {
 	return gs.playerResourceEntity
 }
 
+func (gs gameState) LastFreezeEnd() int {
+	return gs.lastFreezeEnd
+}
+
 func entityIDFromHandle(handle uint64) int {
 	if handle == constants.InvalidEntityHandleSource2 {
 		return -1
@@ -307,10 +312,9 @@ func newGameState(demoInfo demoInfoProvider) *gameState {
 		flyingFlashbangs:         make([]*FlyingFlashbang, 0),
 		flyingGrenades:           make(map[int]bool),
 		defuseKits:               make(map[int]*common.Equipment),
-		rules: gameRules{
-			conVars: make(map[string]string),
-		},
-		demoInfo: demoInfo,
+		rules:                    gameRules{conVars: make(map[string]string)},
+		demoInfo:                 demoInfo,
+		lastFreezeEnd:            -1,
 	}
 
 	gs.tState = common.NewTeamState(common.TeamTerrorists, gs.Participants().TeamMembers, gs.demoInfo)

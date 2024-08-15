@@ -17,7 +17,6 @@ type Player struct {
 	UserID                int                // Mostly used in game-events to address this player
 	Name                  string             // Steam / in-game user name
 	Inventory             map[int]*Equipment // All weapons / equipment the player is currently carrying. See also Weapons().
-	AmmoLeft              [32]int            // Ammo left for special weapons (e.g. grenades), index corresponds Equipment.AmmoType
 	EntityID              int                // Usually the same as Entity.ID() but may be different between player death and re-spawn.
 	Entity                st.Entity          // May be nil between player-death and re-spawn
 	FlashDuration         float32            // Blindness duration from the flashbang currently affecting the player (seconds)

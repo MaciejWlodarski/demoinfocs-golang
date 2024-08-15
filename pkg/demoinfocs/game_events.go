@@ -415,6 +415,7 @@ func (geh gameEventHandler) beginNewMatch(map[string]*msg.CSVCMsg_GameEventKeyT)
 }
 
 func (geh gameEventHandler) roundFreezeEnd(map[string]*msg.CSVCMsg_GameEventKeyT) {
+	geh.gameState().lastFreezeEnd = geh.gameState().ingameTick
 	geh.dispatch(events.RoundFreezetimeEnd{})
 }
 
