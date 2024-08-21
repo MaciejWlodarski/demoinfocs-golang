@@ -255,6 +255,12 @@ type ArmorUpdate struct {
 	Armor  int
 }
 
+type GrenadeUpdate struct {
+	Player   *common.Player
+	Type     common.EquipmentType
+	Quantity int
+}
+
 type HandSwitch struct {
 	Player *common.Player
 	Left   bool

@@ -666,6 +666,42 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		spottedByMaskProp.OnUpdate(spottersChanged)
 		pawnEntity.Property("m_bSpottedByMask.0001").OnUpdate(spottersChanged)
 	}
+
+	for i := 13; i <= 17; i++ {
+		i := i
+
+		property := pawnEntity.Property(playerAmmoPrefix + fmt.Sprintf("%04d", i))
+		property.OnUpdate(func(pv st.PropertyValue) {
+			pl := getPlayerFromPawnEntity(pawnEntity)
+			if pl == nil {
+				return
+			}
+
+			var grenadeType common.EquipmentType
+			switch i {
+			case 13:
+				grenadeType = common.EqHE
+			case 14:
+				grenadeType = common.EqFlash
+			case 15:
+				grenadeType = common.EqSmoke
+			case 16:
+				if pl.Team == common.TeamTerrorists {
+					grenadeType = common.EqMolotov
+				} else {
+					grenadeType = common.EqIncendiary
+				}
+			case 17:
+				grenadeType = common.EqDecoy
+			}
+
+			p.eventDispatcher.Dispatch(events.GrenadeUpdate{
+				Player:   pl,
+				Type:     grenadeType,
+				Quantity: int(pv.S2UInt64()),
+			})
+		})
+	}
 }
 
 func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
@@ -1107,9 +1143,6 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		if owner != nil && owner.PlayerPawnEntity() == nil {
-			fmt.Println(owner)
-		}
 		p.eventDispatcher.Dispatch(events.ItemUpdate{
 			State: -1,
 			Owner: owner,

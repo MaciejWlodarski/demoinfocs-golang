@@ -226,6 +226,71 @@ func (p *Player) Weapons() []*Equipment {
 	return res
 }
 
+func (p *Player) HEGrenades() int {
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
+		return 0
+	}
+
+	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0013")
+	if !ok {
+		return 0
+	}
+	return int(pv.S2UInt64())
+}
+
+func (p *Player) Flashbangs() int {
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
+		return 0
+	}
+
+	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0014")
+	if !ok {
+		return 0
+	}
+	return int(pv.S2UInt64())
+}
+
+func (p *Player) SmokeGrenades() int {
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
+		return 0
+	}
+
+	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0015")
+	if !ok {
+		return 0
+	}
+	return int(pv.S2UInt64())
+}
+
+func (p *Player) FireGrenades() int {
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
+		return 0
+	}
+
+	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
+	if !ok {
+		return 0
+	}
+	return int(pv.S2UInt64())
+}
+
+func (p *Player) DecoyGrenades() int {
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
+		return 0
+	}
+
+	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0017")
+	if !ok {
+		return 0
+	}
+	return int(pv.S2UInt64())
+}
+
 // IsSpottedBy returns true if the player has been spotted by the other player.
 // This is NOT "Line of Sight" / FOV - look up "CSGO TraceRay" for that.
 // May not behave as expected with multiple spotters.

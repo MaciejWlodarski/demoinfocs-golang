@@ -21,6 +21,7 @@ import (
 
 const (
 	playerWeaponPrefixS2  = "m_pWeaponServices.m_hMyWeapons."
+	playerAmmoPrefix      = "m_pWeaponServices.m_iAmmo."
 	playerWeaponPrePrefix = "bcc_nonlocaldata."
 	gameRulesPrefixS2     = "m_pGameRules"
 )
