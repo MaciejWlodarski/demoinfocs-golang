@@ -215,6 +215,25 @@ func (p *Player) MainWeapon() *Equipment {
 	return weapon
 }
 
+func (p *Player) PrimaryWeapon() *Equipment {
+	for _, wep := range p.Inventory {
+		class := int(wep.Type.Class())
+		if class >= 2 && class <= 4 {
+			return wep
+		}
+	}
+	return nil
+}
+
+func (p *Player) SecondaryWeapon() *Equipment {
+	for _, wep := range p.Inventory {
+		if wep.Class() == EqClassPistols {
+			return wep
+		}
+	}
+	return nil
+}
+
 // Weapons returns all weapons in the player's possession.
 // Contains all entries from Player.Inventory but as a slice instead of a map.
 func (p *Player) Weapons() []*Equipment {

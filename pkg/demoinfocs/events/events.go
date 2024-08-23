@@ -234,10 +234,16 @@ type WeaponReloadEnd struct {
 	Success bool
 }
 
-type ItemUpdate struct {
+type ItemStateUpdate struct {
 	State int
 	Owner *common.Player
 	Item  *common.Equipment
+}
+
+type ItemOwnerUpdate struct {
+	PrevOwner *common.Player
+	NewOwner  *common.Player
+	Item      *common.Equipment
 }
 
 type DefuseKitUpdate struct {

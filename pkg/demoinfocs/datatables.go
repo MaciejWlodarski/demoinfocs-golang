@@ -1062,8 +1062,16 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		}
 
 		owner := p.GameState().Participants().FindByPawnHandle(val.Handle())
+		prevOwner := equipment.Owner
+
+		equipment.Owner = owner
+		p.eventDispatcher.Dispatch(events.ItemOwnerUpdate{
+			PrevOwner: prevOwner,
+			NewOwner:  owner,
+			Item:      equipment,
+		})
+
 		if owner == nil {
-			equipment.Owner = nil
 			return
 		}
 
@@ -1134,7 +1142,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		p.eventDispatcher.Dispatch(events.ItemUpdate{
+		p.eventDispatcher.Dispatch(events.ItemStateUpdate{
 			State: int(val.S2UInt32()),
 			Owner: owner,
 			Item:  equipment,
@@ -1143,7 +1151,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		p.eventDispatcher.Dispatch(events.ItemUpdate{
+		p.eventDispatcher.Dispatch(events.ItemStateUpdate{
 			State: -1,
 			Owner: owner,
 			Item:  equipment,
