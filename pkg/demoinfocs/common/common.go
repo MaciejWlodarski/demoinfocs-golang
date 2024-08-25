@@ -74,13 +74,9 @@ type GrenadeProjectile struct {
 	InitialVelocity r3.Vector
 	Bouces          int
 
-	// Deprecated: use Trajectory2 instead
-	Trajectory []r3.Vector // List of all known locations of the grenade up to the current point
-
-	Trajectory2 []TrajectoryEntry // List of all known locations and the point in time of the grenade up to the current point
-
 	// uniqueID is used to distinguish different grenades (which potentially have the same, reused entityID) from each other.
-	uniqueID int64
+	uniqueID         int64
+	demoInfoProvider demoInfoProvider
 }
 
 // Position returns the current position of the grenade projectile in world coordinates.
@@ -105,6 +101,10 @@ func (g *GrenadeProjectile) InitSpeed() float64 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
 }
 
+func (g *GrenadeProjectile) DemoInfo() demoInfoProvider {
+	return g.demoInfoProvider
+}
+
 // UniqueID returns the unique id of the grenade.
 // The unique id is a random int generated internally by this library and can be used to differentiate
 // grenades from each other. This is needed because demo-files reuse entity ids.
@@ -115,8 +115,11 @@ func (g *GrenadeProjectile) UniqueID() int64 {
 // NewGrenadeProjectile creates a grenade projectile and sets the Unique-ID.
 //
 // Intended for internal use only.
-func NewGrenadeProjectile() *GrenadeProjectile {
-	return &GrenadeProjectile{uniqueID: rand.Int63()} //nolint:gosec
+func NewGrenadeProjectile(demoInfoProvider demoInfoProvider) *GrenadeProjectile {
+	return &GrenadeProjectile{
+		uniqueID:         rand.Int63(),
+		demoInfoProvider: demoInfoProvider,
+	} //nolint:gosec
 }
 
 // Bomb tracks the bomb's position, and the player carrying it, if any.
@@ -253,13 +256,6 @@ func NewTeamState(team Team, membersCallback func(Team) []*Player, demoInfoProvi
 		membersCallback:  membersCallback,
 		demoInfoProvider: demoInfoProvider,
 	}
-}
-
-// TrajectoryEntry represents the location of a grenade's trajectory at a specific point in time.
-type TrajectoryEntry struct {
-	Position r3.Vector
-	FrameID  int
-	Time     time.Duration
 }
 
 // ConvertSteamIDTxtTo32 converts a Steam-ID in text format to a 32-bit variant.

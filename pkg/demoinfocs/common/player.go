@@ -423,6 +423,10 @@ func (p *Player) HasHelmet() bool {
 	return getBool(p.PlayerPawnEntity(), "m_pItemServices.m_bHasHelmet")
 }
 
+func (p *Player) HasBomb() bool {
+	return p == p.demoInfoProvider.Bomb().Carrier
+}
+
 // IsControllingBot returns true if the player is currently controlling a bot.
 // See also ControlledBot().
 func (p *Player) IsControllingBot() bool {
@@ -763,6 +767,7 @@ type demoInfoProvider interface {
 	FindEntityByHandle(handle uint64) st.Entity
 	TeamState(Team) *TeamState
 	PlayersAliveByEntityID() map[int]*Player
+	Bomb() *Bomb
 }
 
 // NewPlayer creates a *Player with an initialized equipment map.

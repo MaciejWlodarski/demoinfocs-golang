@@ -240,15 +240,24 @@ type ItemStateUpdate struct {
 	Item  *common.Equipment
 }
 
-type ItemOwnerUpdate struct {
-	PrevOwner *common.Player
-	NewOwner  *common.Player
-	Item      *common.Equipment
+type ItemNewOwner struct {
+	Owner *common.Player
+	Item  *common.Equipment
+}
+
+type ItemDroped struct {
+	Owner *common.Player
+	Item  *common.Equipment
 }
 
 type DefuseKitUpdate struct {
 	Player *common.Player
 	HasKit bool
+}
+
+type BombOwnerUpdate struct {
+	NewOwner  *common.Player
+	PrevOwner *common.Player
 }
 
 type HelmetUpdate struct {

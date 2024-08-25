@@ -470,3 +470,7 @@ func (p demoInfoProvider) FindWeaponByEntityID(entityID int) *common.Equipment {
 func (p demoInfoProvider) PlayersAliveByEntityID() map[int]*common.Player {
 	return p.parser.gameState.aliveByEntityID
 }
+
+func (p demoInfoProvider) Bomb() *common.Bomb {
+	return &p.parser.gameState.bomb
+}

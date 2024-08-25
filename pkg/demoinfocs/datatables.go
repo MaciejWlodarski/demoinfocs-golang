@@ -36,20 +36,13 @@ func (p *parser) bindBomb() {
 
 		bombEntity.Property("m_hOwnerEntity").OnUpdate(func(val st.PropertyValue) {
 			carrier := p.gameState.Participants().FindByPawnHandle(val.Handle())
-			if !p.disableMimicSource1GameEvents {
-				if carrier != nil {
-					p.eventDispatcher.Dispatch(events.BombPickup{
-						Player: carrier,
-					})
-				} else if bomb.Carrier != nil {
-					p.eventDispatcher.Dispatch(events.BombDropped{
-						Player:   bomb.Carrier,
-						EntityID: bomb.Carrier.EntityID,
-					})
-				}
-			}
-
+			prevOwner := bomb.Carrier
 			bomb.Carrier = carrier
+
+			p.eventDispatcher.Dispatch(events.BombOwnerUpdate{
+				NewOwner:  carrier,
+				PrevOwner: prevOwner,
+			})
 		})
 
 		// Updated when a player starts/stops planting the bomb
@@ -834,7 +827,7 @@ func (p *parser) bindWeapons() {
 func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	entityID := entity.ID()
 
-	proj := common.NewGrenadeProjectile()
+	proj := common.NewGrenadeProjectile(p.demoInfoProvider)
 	proj.Entity = entity
 	p.gameState.grenadeProjectiles[entityID] = proj
 
@@ -933,16 +926,6 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 		}
 
 		proj.Owner = p.gameState.Participants().FindByPawnHandle(val.Handle())
-	})
-
-	entity.OnPositionUpdate(func(newPos r3.Vector) {
-		proj.Trajectory = append(proj.Trajectory, newPos)
-
-		proj.Trajectory2 = append(proj.Trajectory2, common.TrajectoryEntry{
-			Position: newPos,
-			FrameID:  p.CurrentFrame(),
-			Time:     p.CurrentTime(),
-		})
 	})
 
 	// Some demos don't have this property as it seems
@@ -1063,17 +1046,20 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 		owner := p.GameState().Participants().FindByPawnHandle(val.Handle())
 		prevOwner := equipment.Owner
-
 		equipment.Owner = owner
-		p.eventDispatcher.Dispatch(events.ItemOwnerUpdate{
-			PrevOwner: prevOwner,
-			NewOwner:  owner,
-			Item:      equipment,
-		})
 
 		if owner == nil {
+			p.eventDispatcher.Dispatch(events.ItemDroped{
+				Owner: prevOwner,
+				Item:  equipment,
+			})
 			return
 		}
+
+		p.eventDispatcher.Dispatch(events.ItemNewOwner{
+			Owner: owner,
+			Item:  equipment,
+		})
 
 		oldOwnerMoney = owner.Money()
 
