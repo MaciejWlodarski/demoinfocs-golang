@@ -17,7 +17,10 @@ import (
 //
 // See also: Inferno.Active() and Fire.IsBurning
 type Inferno struct {
-	Entity st.Entity
+	Entity    st.Entity
+	Type      int
+	FireCount int
+	Fires     [16]*Fire
 
 	// uniqueID is used to distinguish different infernos (which potentially have the same, reused entityID) from each other.
 	uniqueID         int64
@@ -27,9 +30,14 @@ type Inferno struct {
 
 // Fire is a component of an Inferno.
 type Fire struct {
-	r3.Vector
-
+	Position  r3.Vector
 	IsBurning bool
+}
+
+func NewFire(pos r3.Vector) *Fire {
+	return &Fire{
+		Position: pos,
+	}
 }
 
 // Fires is a collection of fires that provides utility functions for things like calculation of 2D & 3D convex hulls.
@@ -56,9 +64,13 @@ func (inf *Inferno) Thrower() *Player {
 	return inf.demoInfoProvider.FindPlayerByPawnHandle(handleProp.Handle())
 }
 
-// Fires returns all fires (past + present).
+func (inf *Inferno) DemoInfo() demoInfoProvider {
+	return inf.demoInfoProvider
+}
+
+// GetFires returns all fires (past + present).
 // Some are currently active and some have extinguished (see Fire.IsBurning).
-func (inf *Inferno) Fires() Fires {
+func (inf *Inferno) GetFires() Fires {
 	entity := inf.Entity
 	origin := entity.Position()
 	nFires := entity.PropertyValueMust("m_fireCount").Int()
@@ -73,14 +85,14 @@ func (inf *Inferno) Fires() Fires {
 		}
 
 		if prop := entity.Property("m_firePositions." + iStr); prop != nil {
-			fire.Vector = prop.Value().R3Vec()
+			fire.Position = prop.Value().R3Vec()
 		} else {
 			offset := r3.Vector{
 				X: float64(entity.PropertyValueMust("m_fireXDelta." + iStr).Int()),
 				Y: float64(entity.PropertyValueMust("m_fireYDelta." + iStr).Int()),
 				Z: float64(entity.PropertyValueMust("m_fireZDelta." + iStr).Int()),
 			}
-			fire.Vector = origin.Add(offset)
+			fire.Position = origin.Add(offset)
 		}
 
 		fires = append(fires, fire)
@@ -114,7 +126,7 @@ func (f Fires) List() []Fire {
 func (f Fires) ConvexHull2D() []r2.Point {
 	pointCloud := make([]r3.Vector, len(f.s))
 	for i, f := range f.s {
-		pointCloud[i] = f.Vector
+		pointCloud[i] = f.Position
 		pointCloud[i].Z = 0
 	}
 
@@ -191,7 +203,7 @@ func (f Fires) ConvexHull3D() quickhull.ConvexHull {
 	pointCloud := make([]r3.Vector, len(f.s))
 
 	for i, f := range f.s {
-		pointCloud[i] = f.Vector
+		pointCloud[i] = f.Position
 	}
 
 	return convexHull(pointCloud)
@@ -207,6 +219,7 @@ func convexHull(pointCloud []r3.Vector) quickhull.ConvexHull {
 func NewInferno(demoInfoProvider demoInfoProvider, entity st.Entity, thrower *Player) *Inferno {
 	return &Inferno{
 		Entity:           entity,
+		Type:             entity.Property("m_nInfernoType").Value().Int(),
 		uniqueID:         rand.Int63(), //nolint:gosec
 		demoInfoProvider: demoInfoProvider,
 		thrower:          thrower,

@@ -295,6 +295,7 @@ type GrenadeEvent struct {
 	Position        r3.Vector
 	Thrower         *common.Player // May be nil with POV demos or if the demo is partially corrupt (player is 'unconnected', see #156 and #172).
 	GrenadeEntityID int
+	Projectile      *common.GrenadeProjectile
 }
 
 // Base returns the GrenadeEvent itself, used for catching all events with GrenadeEventIf.
@@ -734,6 +735,12 @@ type InfernoStart struct {
 // Mainly useful for getting the final area of an inferno.
 type InfernoExpired struct {
 	Inferno *common.Inferno
+}
+
+type InfernoFireStart struct {
+	Inferno *common.Inferno
+	Index   int
+	Fire    *common.Fire
 }
 
 // ScoreUpdated signals that the score of one of the teams has been updated.

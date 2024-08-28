@@ -1202,6 +1202,35 @@ func (p *parser) bindNewInferno(entity st.Entity) {
 		})
 	})
 
+	entity.Property("m_fireCount").OnUpdate(func(pv st.PropertyValue) {
+		inf.FireCount = pv.Int()
+	})
+
+	for i := range 16 {
+		entity.Property("m_bFireIsBurning." + fmt.Sprintf("%04d", i)).OnUpdate(func(pv st.PropertyValue) {
+			index := i
+			isBurning := pv.BoolVal()
+			fire := inf.Fires[index]
+
+			if fire == nil {
+				if !isBurning {
+					return
+				}
+
+				pos := entity.Property("m_firePositions." + fmt.Sprintf("%04d", index)).Value().R3Vec()
+				fire = common.NewFire(pos)
+				inf.Fires[index] = fire
+			}
+
+			fire.IsBurning = isBurning
+			p.eventDispatcher.Dispatch(events.InfernoFireStart{
+				Inferno: inf,
+				Index:   index,
+				Fire:    fire,
+			})
+		})
+	}
+
 	entity.OnDestroy(func() {
 		p.infernoExpired(inf)
 	})
