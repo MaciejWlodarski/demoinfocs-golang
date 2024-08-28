@@ -64,14 +64,26 @@ func (p *Player) GetTeam() Team {
 		return Team(0)
 	}
 
+	var team Team
 	if propVal, ok := p.Entity.PropertyValue("m_iTeamNum"); ok {
-		return Team(propVal.S2UInt64())
+		team = Team(propVal.S2UInt64())
 	}
-	return Team(0)
+	if team > 2 {
+		return team
+	}
+	if propVal, ok := p.PlayerPawnEntity().PropertyValue("m_iTeamNum"); ok {
+		team = Team(propVal.S2UInt64())
+	}
+
+	return team
 }
 
 func (p *Player) GetTeamState() *TeamState {
-	return p.demoInfoProvider.TeamState(p.Team)
+	team := p.Team
+	if team < 2 {
+		team = p.GetTeam()
+	}
+	return p.demoInfoProvider.TeamState(team)
 }
 
 func (p *Player) GetFlashDuration() float32 {
