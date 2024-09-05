@@ -3,6 +3,7 @@ package demoinfocs
 import (
 	"fmt"
 	"math"
+	"os"
 
 	"github.com/golang/geo/r3"
 	"github.com/markus-wa/go-unassert"
@@ -849,6 +850,8 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 			weaponType, exists := p.equipmentTypePerModel[model]
 			if exists {
 				wep = weaponType
+			} else {
+				fmt.Fprintf(os.Stderr, "unknown grenade model %d\n", model)
 			}
 		}
 
@@ -1006,7 +1009,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	wepType := common.EquipmentIndexMapping[itemIndex]
 
 	if wepType == common.EqUnknown {
-		fmt.Println("unknown equipment with index", itemIndex)
+		fmt.Fprintln(os.Stderr, "unknown equipment with index", itemIndex)
 
 		p.msgDispatcher.Dispatch(events.ParserWarn{
 			Message: fmt.Sprintf("unknown equipment with index %d", itemIndex),

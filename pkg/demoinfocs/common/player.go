@@ -573,6 +573,7 @@ func (p *Player) Position() r3.Vector {
 }
 
 // Velocity returns the player's velocity.
+// Deprecated: will be removed due to performance concerns, you will need to track this yourself.
 func (p *Player) Velocity() r3.Vector {
 	if !p.Alive {
 		return r3.Vector{}
