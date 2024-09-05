@@ -572,23 +572,6 @@ func (p *Player) Position() r3.Vector {
 	return r3.Vector{}
 }
 
-// Velocity returns the player's velocity.
-// Deprecated: will be removed due to performance concerns, you will need to track this yourself.
-func (p *Player) Velocity() r3.Vector {
-	if !p.Alive {
-		return r3.Vector{}
-	}
-
-	t := 64.0
-	diff := p.Position().Sub(p.PreviousFramePosition)
-
-	return r3.Vector{
-		X: diff.X * t,
-		Y: diff.Y * t,
-		Z: diff.Z * t,
-	}
-}
-
 // see https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/public/const.h#L146-L188
 const (
 	flOnGround = 1 << iota
