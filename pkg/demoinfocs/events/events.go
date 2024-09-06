@@ -276,6 +276,11 @@ type GrenadeUpdate struct {
 	Quantity int
 }
 
+type ActiveWeaponUpdate struct {
+	Player *common.Player
+	Weapon *common.Equipment
+}
+
 type HandSwitch struct {
 	Player *common.Player
 	Left   bool

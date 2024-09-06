@@ -308,6 +308,7 @@ func newGameState(demoInfo demoInfoProvider) *gameState {
 		wepsToRemove:             make(map[int]*common.Equipment),
 		hostages:                 make(map[int]*common.Hostage),
 		entities:                 make(map[int]st.Entity),
+		bomb:                     common.NewBomb(demoInfo),
 		thrownGrenades:           make(map[*common.Player][]*common.Equipment),
 		flyingFlashbangs:         make([]*FlyingFlashbang, 0),
 		flyingGrenades:           make(map[int]bool),

@@ -584,6 +584,13 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			return
 		}
 
+		wepId := int(val.S2UInt64() & constants.EntityHandleIndexMaskSource2)
+		wep := p.demoInfoProvider.FindWeaponByEntityID(wepId)
+		p.eventDispatcher.Dispatch(events.ActiveWeaponUpdate{
+			Player: pl,
+			Weapon: wep,
+		})
+
 		if pl.IsReloading {
 			p.eventDispatcher.Dispatch(events.WeaponReloadEnd{
 				Player: pl,

@@ -186,12 +186,13 @@ This isn't very conclusive but it looks like IsFlashed isn't super reliable curr
 
 // Used internally to set the active weapon, see ActiveWeapon()
 func (p *Player) activeWeaponID() int {
-	if pawnEntity := p.PlayerPawnEntity(); pawnEntity != nil {
-		if pawnEntity.Property("m_pWeaponServices.m_hActiveWeapon") == nil {
-			return 0
-		}
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
+		return 0
+	}
 
-		return int(pawnEntity.PropertyValueMust("m_pWeaponServices.m_hActiveWeapon").S2UInt64() & constants.EntityHandleIndexMaskSource2)
+	if val, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_hActiveWeapon"); ok {
+		return int(val.S2UInt64() & constants.EntityHandleIndexMaskSource2)
 	}
 
 	return 0

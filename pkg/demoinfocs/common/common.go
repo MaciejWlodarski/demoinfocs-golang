@@ -131,6 +131,16 @@ type Bomb struct {
 	Planted              bool
 	Defused              bool
 	InDefuse             bool
+
+	demoInfoProvider demoInfoProvider
+}
+
+func NewBomb(demoInfoProvider demoInfoProvider) Bomb {
+	return Bomb{demoInfoProvider: demoInfoProvider}
+}
+
+func (g *Bomb) DemoInfo() demoInfoProvider {
+	return g.demoInfoProvider
 }
 
 // Position returns the current position of the bomb.
