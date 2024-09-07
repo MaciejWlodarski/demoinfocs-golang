@@ -1195,7 +1195,6 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 func (p *parser) bindNewInferno(entity st.Entity) {
 	ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
-
 	if ownerEntVal.Any == nil {
 		return
 	}
@@ -1203,10 +1202,17 @@ func (p *parser) bindNewInferno(entity st.Entity) {
 	throwerHandle := ownerEntVal.Handle()
 	thrower := p.gameState.Participants().FindByPawnHandle(throwerHandle)
 
-	inf := common.NewInferno(p.demoInfoProvider, entity, thrower)
-	p.gameState.infernos[entity.ID()] = inf
+	inf, ok := p.gameState.infernos[entity.ID()]
+	if !ok {
+		inf = common.NewInferno(p.demoInfoProvider, entity, thrower)
+		p.gameState.infernos[entity.ID()] = inf
+	}
 
 	entity.OnCreateFinished(func() {
+		if ok {
+			return
+		}
+
 		p.eventDispatcher.Dispatch(events.InfernoStart{
 			Inferno: inf,
 		})
@@ -1232,6 +1238,9 @@ func (p *parser) bindNewInferno(entity st.Entity) {
 				inf.Fires[index] = fire
 			}
 
+			if fire.IsBurning == isBurning {
+				return
+			}
 			fire.IsBurning = isBurning
 			p.eventDispatcher.Dispatch(events.InfernoFireStart{
 				Inferno: inf,
