@@ -566,6 +566,7 @@ func (geh gameEventHandler) playerDeath(data map[string]*msg.CSVCMsg_GameEventKe
 		AttackerBlind:     data["attackerblind"].GetValBool(),
 		NoScope:           data["noscope"].GetValBool(),
 		ThroughSmoke:      data["thrusmoke"].GetValBool(),
+		InAir:             data["attackerinair"].GetValBool(),
 		Distance:          data["distance"].GetValFloat(),
 	})
 }

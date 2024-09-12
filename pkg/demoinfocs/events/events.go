@@ -199,6 +199,7 @@ type Kill struct {
 	AttackerBlind     bool
 	NoScope           bool
 	ThroughSmoke      bool
+	InAir             bool
 	Distance          float32
 }
 

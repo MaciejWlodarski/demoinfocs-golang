@@ -687,10 +687,17 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			case 15:
 				grenadeType = common.EqSmoke
 			case 16:
+				grenadeType = common.EqIncendiary
+
 				if pl.Team == common.TeamTerrorists {
 					grenadeType = common.EqMolotov
-				} else {
-					grenadeType = common.EqIncendiary
+				}
+
+				for _, wep := range pl.Inventory {
+					if wep.Type == common.EqMolotov || wep.Type == common.EqIncendiary {
+						grenadeType = wep.Type
+						break
+					}
 				}
 			case 17:
 				grenadeType = common.EqDecoy
