@@ -40,6 +40,15 @@ func (p *parser) parseStringTables() {
 	p.bitReader.EndChunk()
 }
 
+func contains(arr []string, element string) bool {
+	for _, v := range arr {
+		if v == element {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *parser) updatePlayerFromRawIfExists(index int, raw common.PlayerInfo) {
 	pl := p.gameState.playersByEntityID[index+1]
 	if pl == nil {
@@ -50,7 +59,9 @@ func (p *parser) updatePlayerFromRawIfExists(index int, raw common.PlayerInfo) {
 	newName := raw.Name
 	nameChanged := !pl.IsBot && !raw.IsFakePlayer && raw.GUID != "BOT" && oldName != newName
 
-	pl.Name = raw.Name
+	if !nameChanged {
+		pl.Name = raw.Name
+	}
 	pl.SteamID64 = raw.XUID
 	pl.IsBot = raw.IsFakePlayer
 	pl.UserID = index
@@ -58,6 +69,9 @@ func (p *parser) updatePlayerFromRawIfExists(index int, raw common.PlayerInfo) {
 	p.gameState.indexPlayerBySteamID(pl)
 	p.gameState.indexPlayerByUserID(pl)
 
+	if !contains(pl.Names, newName) {
+		pl.Names = append(pl.Names, newName)
+	}
 	if nameChanged {
 		p.eventDispatcher.Dispatch(events.PlayerNameChange{
 			Player:  pl,

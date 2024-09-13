@@ -352,6 +352,9 @@ func (p *parser) getOrCreatePlayer(entityID int, rp *common.PlayerInfo) (isNew b
 
 				player = common.NewPlayer(p.demoInfoProvider)
 				player.Name = rp.Name
+				if !contains(player.Names, rp.Name) {
+					player.Names = append(player.Names, rp.Name)
+				}
 				player.SteamID64 = rp.XUID
 				player.IsBot = rp.IsFakePlayer || rp.GUID == "BOT"
 				player.UserID = userID
@@ -842,21 +845,30 @@ func (p *parser) bindWeapons() {
 func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	entityID := entity.ID()
 
-	proj := common.NewGrenadeProjectile(p.demoInfoProvider)
-	proj.Entity = entity
-	p.gameState.grenadeProjectiles[entityID] = proj
+	proj, ok := p.gameState.grenadeProjectiles[entity.ID()]
+	if !ok {
+		proj := common.NewGrenadeProjectile(p.demoInfoProvider)
+		proj.Entity = entity
+		p.gameState.grenadeProjectiles[entityID] = proj
 
-	ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
-	if ownerEntVal.Any != nil {
-		player := p.demoInfoProvider.FindPlayerByPawnHandle(ownerEntVal.Handle())
-		proj.Thrower = player
-		proj.Owner = player
+		ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
+		if ownerEntVal.Any != nil {
+			player := p.demoInfoProvider.FindPlayerByPawnHandle(ownerEntVal.Handle())
+			proj.Thrower = player
+			proj.Owner = player
+		}
+
 		proj.InitialPosition = entity.Property("m_vInitialPosition").Value().R3Vec()
 		proj.InitialVelocity = entity.Property("m_vInitialVelocity").Value().R3Vec()
 	}
 
 	var wep common.EquipmentType
 	entity.OnCreateFinished(func() { //nolint:wsl
+		if ok {
+			return
+		}
+
+		proj = p.gameState.grenadeProjectiles[entity.ID()]
 		modelVal := entity.PropertyValueMust("CBodyComponent.m_hModel")
 
 		if modelVal.Any != nil {
@@ -865,12 +877,21 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 			if exists {
 				wep = weaponType
 			} else {
+				getWepType := func(entity st.Entity) common.EquipmentType {
+					if _, ok := entity.PropertyValue("m_bDidSmokeEffect"); ok {
+						return common.EqSmoke
+					}
+					if val, ok := entity.PropertyValue("m_flDamage"); ok && val.Float() == 99 {
+						return common.EqHE
+					}
+					return common.EqUnknown
+				}
+				wep = getWepType(entity)
+
 				fmt.Fprintf(os.Stderr, "unknown grenade model %d\n", model)
 			}
 		}
 
-		// copy the weapon so it doesn't get overwritten by a new entity in parser.weapons
-		// wepCopy := *(getPlayerWeapon(proj.Thrower, wep))
 		proj.WeaponInstance = getLastThrownGrenade(proj.Thrower, wep)
 
 		unassert.NotNilf(proj.WeaponInstance, "couldn't find grenade instance for player")
@@ -880,33 +901,31 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 
 		p.gameEventHandler.addThrownGrenade(proj.Thrower, proj.WeaponInstance)
 
-		projId := proj.Entity.ID()
-		if _, ok := p.gameState.flyingGrenades[projId]; !ok {
-			p.gameEventHandler.grenadeThrow(projId)
-
-			if wep == common.EqFlash {
-				p.gameState.flyingFlashbangs = append(p.gameState.flyingFlashbangs, &FlyingFlashbang{
-					projectile:       proj,
-					flashedEntityIDs: []int{},
-				})
-			}
-
-			if !p.disableMimicSource1GameEvents {
-				p.eventDispatcher.Dispatch(events.FakeWeaponFire{
-					Shooter: proj.Owner,
-					Weapon:  proj.WeaponInstance,
-				})
-			}
-
-			p.eventDispatcher.Dispatch(events.GrenadeProjectileThrow{
-				Projectile: proj,
+		if wep == common.EqFlash {
+			p.gameState.flyingFlashbangs = append(p.gameState.flyingFlashbangs, &FlyingFlashbang{
+				projectile:       proj,
+				flashedEntityIDs: []int{},
 			})
 		}
+
+		if !p.disableMimicSource1GameEvents {
+			p.eventDispatcher.Dispatch(events.FakeWeaponFire{
+				Shooter: proj.Owner,
+				Weapon:  proj.WeaponInstance,
+			})
+		}
+
+		p.eventDispatcher.Dispatch(events.GrenadeProjectileThrow{
+			Projectile: proj,
+		})
 	})
 
 	entity.OnDestroy(func() {
-		_, ok := p.gameState.flyingGrenades[entity.ID()]
-		if !ok && wep == common.EqFlash && !p.disableMimicSource1GameEvents {
+		if ok {
+			return
+		}
+
+		if wep == common.EqFlash && !p.disableMimicSource1GameEvents {
 			p.gameEventHandler.dispatch(events.FlashExplode{
 				GrenadeEvent: events.GrenadeEvent{
 					GrenadeType:     common.EqFlash,
@@ -963,22 +982,6 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 			}
 		})
 	}
-
-	if voxelProp := entity.Property("m_VoxelFrameData"); voxelProp != nil {
-		voxelProp.OnUpdate(func(val st.PropertyValue) {
-			smk := p.gameState.smokes[entityID]
-			if smk == nil {
-				return
-			}
-			for i := len(smk.VoxelFrameData); i < 10000; i++ {
-				val := smk.Entity.Property("m_VoxelFrameData." + fmt.Sprintf("%04d", i)).Value()
-				if val.Any == nil {
-					break
-				}
-				smk.VoxelFrameData = append(smk.VoxelFrameData, uint8(val.S2UInt64()))
-			}
-		})
-	}
 }
 
 // Separate function because we also use it in round_officially_ended (issue #42)
@@ -994,7 +997,6 @@ func (p *parser) nadeProjectileDestroyed(proj *common.GrenadeProjectile) {
 	})
 
 	delete(p.gameState.grenadeProjectiles, proj.Entity.ID())
-	delete(p.gameState.flyingGrenades, proj.Entity.ID())
 
 	// We delete from the Owner.ThrownGrenades (only if not inferno or smoke, because they will be deleted when they expire)
 	isInferno := proj.WeaponInstance.Type == common.EqMolotov || proj.WeaponInstance.Type == common.EqIncendiary
@@ -1281,7 +1283,6 @@ func (p *parser) infernoExpired(inf *common.Inferno) {
 
 func (p *parser) bindNewSmoke(entity st.Entity) {
 	ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
-
 	if ownerEntVal.Any == nil {
 		return
 	}
@@ -1303,6 +1304,16 @@ func (p *parser) bindNewSmoke(entity st.Entity) {
 
 		if val.BoolVal() {
 			smk.ActivationTick = p.demoInfoProvider.IngameTick()
+		}
+	})
+
+	entity.Property("m_VoxelFrameData").OnUpdate(func(val st.PropertyValue) {
+		for i := len(smk.VoxelFrameData); i < 10000; i++ {
+			val := smk.Entity.Property("m_VoxelFrameData." + fmt.Sprintf("%04d", i)).Value()
+			if val.Any == nil {
+				break
+			}
+			smk.VoxelFrameData = append(smk.VoxelFrameData, uint8(val.S2UInt64()))
 		}
 	})
 }

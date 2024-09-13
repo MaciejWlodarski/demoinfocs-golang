@@ -66,7 +66,6 @@ type gameState struct {
 	flyingFlashbangs []*FlyingFlashbang
 	smokes           map[int]*common.Smoke // Maps entity-IDs to active smokes.
 	wepsToRemove     map[int]*common.Equipment
-	flyingGrenades   map[int]bool
 	defuseKits       map[int]*common.Equipment
 	lastFreezeEnd    int
 }
@@ -283,11 +282,13 @@ func entityIDFromHandle(handle uint64) int {
 // EntityByHandle returns the entity corresponding to the given handle.
 // Returns nil if the handle is invalid.
 func (gs gameState) EntityByHandle(handle uint64) st.Entity {
-	if ent, ok := gs.entities[entityIDFromHandle(handle)]; ok && ent != nil {
+	entId := entityIDFromHandle(handle)
+
+	if ent, ok := gs.entities[entId]; ok && ent != nil {
 		return ent
 	}
 
-	if ent, ok := gs.demoInfo.parser.stParser.Entities()[int32(entityIDFromHandle(handle))]; ok && ent != nil {
+	if ent, ok := gs.demoInfo.parser.stParser.Entities()[int32(entId)]; ok && ent != nil {
 		return ent
 	}
 
@@ -311,7 +312,6 @@ func newGameState(demoInfo demoInfoProvider) *gameState {
 		bomb:                     common.NewBomb(demoInfo),
 		thrownGrenades:           make(map[*common.Player][]*common.Equipment),
 		flyingFlashbangs:         make([]*FlyingFlashbang, 0),
-		flyingGrenades:           make(map[int]bool),
 		defuseKits:               make(map[int]*common.Equipment),
 		rules:                    gameRules{conVars: make(map[string]string)},
 		demoInfo:                 demoInfo,
@@ -505,22 +505,37 @@ func (ptcp participants) TeamMembers(team common.Team) []*common.Player {
 //
 // Returns nil if not found.
 func (ptcp participants) FindByPawnHandle(handle uint64) *common.Player {
-	entityID := entityIDFromHandle(handle)
-
 	for _, player := range ptcp.All() {
-		pawnEntity := player.PlayerPawnEntity()
+		playerPawn := player.Entity.Property("m_hPlayerPawn").Value().Handle()
 
-		if pawnEntity == nil {
+		if playerPawn == constants.InvalidEntityHandleSource2 {
 			continue
 		}
 
-		if pawnEntity.ID() == entityID {
+		if handle == playerPawn {
 			return player
 		}
 	}
 
 	return nil
 }
+
+// func (ptcp participants) FindByPawnHandle(handle uint64) *common.Player {
+// 	entityID := entityIDFromHandle(handle)
+// 	for _, player := range ptcp.All() {
+// 		pawnEntity := player.PlayerPawnEntity()
+
+// 		if pawnEntity == nil {
+// 			continue
+// 		}
+
+// 		if pawnEntity.ID() == entityID {
+// 			return player
+// 		}
+// 	}
+
+// 	return nil
+// }
 
 // FindByHandle64 attempts to find a player by his entity-handle.
 // The entity-handle is often used in entity-properties when referencing other entities such as a weapon's owner.

@@ -13,9 +13,10 @@ import (
 type Player struct {
 	demoInfoProvider demoInfoProvider // provider for demo info such as tick-rate or current tick
 
-	SteamID64             uint64             // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
-	UserID                int                // Mostly used in game-events to address this player
-	Name                  string             // Steam / in-game user name
+	SteamID64             uint64 // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
+	UserID                int    // Mostly used in game-events to address this player
+	Name                  string // Steam / in-game user name
+	Names                 []string
 	Inventory             map[int]*Equipment // All weapons / equipment the player is currently carrying. See also Weapons().
 	EntityID              int                // Usually the same as Entity.ID() but may be different between player death and re-spawn.
 	Entity                st.Entity          // May be nil between player-death and re-spawn
@@ -772,6 +773,7 @@ type demoInfoProvider interface {
 // Intended for internal use only.
 func NewPlayer(demoInfoProvider demoInfoProvider) *Player {
 	return &Player{
+		Names:                 make([]string, 0),
 		Inventory:             make(map[int]*Equipment),
 		demoInfoProvider:      demoInfoProvider,
 		PreviousFramePosition: r3.Vector{},
