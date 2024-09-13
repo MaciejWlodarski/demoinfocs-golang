@@ -1371,7 +1371,9 @@ func (p *parser) bindGameRules() {
 			}
 
 			// p.delayedEventHandlers = make([]func(), 0)
-			p.gameEventHandler.clearGrenadeProjectiles()
+			if p.gameState.ingameTick > 1 {
+				p.gameEventHandler.clearGrenadeProjectiles()
+			}
 			for _, dk := range p.gameState.defuseKits {
 				p.defuseKitDestroyed(dk)
 			}

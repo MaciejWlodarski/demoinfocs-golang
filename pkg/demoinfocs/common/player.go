@@ -69,7 +69,7 @@ func (p *Player) GetTeam() Team {
 	if propVal, ok := p.Entity.PropertyValue("m_iTeamNum"); ok {
 		team = Team(propVal.S2UInt64())
 	}
-	if team > 2 {
+	if team >= 2 {
 		return team
 	}
 	if propVal, ok := p.PlayerPawnEntity().PropertyValue("m_iTeamNum"); ok {

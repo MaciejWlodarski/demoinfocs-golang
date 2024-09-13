@@ -505,12 +505,16 @@ func (ptcp participants) TeamMembers(team common.Team) []*common.Player {
 //
 // Returns nil if not found.
 func (ptcp participants) FindByPawnHandle(handle uint64) *common.Player {
-	for _, player := range ptcp.All() {
-		playerPawn := player.Entity.Property("m_hPlayerPawn").Value().Handle()
+	if handle == constants.InvalidEntityHandleSource2 {
+		return nil
+	}
 
-		if playerPawn == constants.InvalidEntityHandleSource2 {
+	for _, player := range ptcp.All() {
+		if player.Entity == nil {
 			continue
 		}
+
+		playerPawn := player.Entity.Property("m_hPlayerPawn").Value().Handle()
 
 		if handle == playerPawn {
 			return player

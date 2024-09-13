@@ -1039,7 +1039,7 @@ func (geh gameEventHandler) nadeEvent(data map[string]*msg.CSVCMsg_GameEventKeyT
 		Thrower:         thrower,
 		Position:        position,
 		GrenadeEntityID: nadeEntityID,
-		Projectile:      geh.gameState().grenadeProjectiles[int(data["entityid"].GetValShort())],
+		Projectile:      geh.gameState().grenadeProjectiles[nadeEntityID],
 	}
 }
 
