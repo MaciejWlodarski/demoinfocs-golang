@@ -737,7 +737,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 
 		if wep == nil {
 			// sometimes a weapon is assigned to a player before the weapon entity is created
-			wep = common.NewEquipment(common.EqUnknown)
+			wep = common.NewEquipment(common.EqUnknown, p.demoInfoProvider)
 			p.gameState.weapons[int(entityID)] = wep
 		}
 
@@ -1038,7 +1038,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	equipment, exists := p.gameState.weapons[entityID]
 	if !exists {
-		equipment = common.NewEquipment(wepType)
+		equipment = common.NewEquipment(wepType, p.demoInfoProvider)
 		p.gameState.weapons[entityID] = equipment
 	} else {
 		equipment.Type = wepType
@@ -1327,7 +1327,7 @@ func (p *parser) smokeExpired(smk *common.Smoke) {
 }
 
 func (p *parser) bindDefuseKit(entity st.Entity) {
-	dk := common.NewEquipment(common.EqDefuseKit)
+	dk := common.NewEquipment(common.EqDefuseKit, p.demoInfoProvider)
 	dk.Entity = entity
 	dk.EntityId = entity.ID()
 

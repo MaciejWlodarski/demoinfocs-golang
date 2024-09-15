@@ -318,8 +318,9 @@ type Equipment struct {
 	Owner    *Player // The player carrying the equipment, not necessarily the buyer.
 	Skin     *Skin
 
-	uniqueID  int64 // Deprecated, use uniqueID2, see UniqueID() for why
-	uniqueID2 ulid.ULID
+	uniqueID         int64 // Deprecated, use uniqueID2, see UniqueID() for why
+	uniqueID2        ulid.ULID
+	demoInfoProvider demoInfoProvider
 }
 
 // String returns a human readable name for the equipment.
@@ -551,11 +552,15 @@ func (e *Equipment) ReloadTime() int32 {
 	return ReloadTimeMapping[e.Type]
 }
 
+func (e *Equipment) DemoInfo() demoInfoProvider {
+	return e.demoInfoProvider
+}
+
 // NewEquipment creates a new Equipment and sets the UniqueID.
 //
 // Intended for internal use only.
-func NewEquipment(wep EquipmentType) *Equipment {
-	return &Equipment{Type: wep, uniqueID: rand.Int63(), uniqueID2: ulid.Make()} //nolint:gosec
+func NewEquipment(wep EquipmentType, demoInfoProvider demoInfoProvider) *Equipment {
+	return &Equipment{Type: wep, uniqueID: rand.Int63(), uniqueID2: ulid.Make(), demoInfoProvider: demoInfoProvider} //nolint:gosec
 }
 
 var equipmentToAlternative = map[EquipmentType]EquipmentType{

@@ -500,7 +500,7 @@ func (geh gameEventHandler) playerSound(data map[string]*msg.CSVCMsg_GameEventKe
 func (geh gameEventHandler) weaponFire(data map[string]*msg.CSVCMsg_GameEventKeyT) {
 	shooter := geh.playerByUserID32(data["userid"].GetValShort())
 	wepType := common.MapEquipment(data["weapon"].GetValString())
-	wep := getPlayerWeapon(shooter, wepType)
+	wep := getPlayerWeapon(shooter, wepType, geh.parser.demoInfoProvider)
 
 	if wepType.Class() == common.EqClassGrenade && shooter != nil {
 		wepCopy := *wep
@@ -974,7 +974,7 @@ func (geh gameEventHandler) otherDeath(data map[string]*msg.CSVCMsg_GameEventKey
 	}
 
 	wepType := common.MapEquipment(data["weapon"].GetValString())
-	weapon := getPlayerWeapon(killer, wepType)
+	weapon := getPlayerWeapon(killer, wepType, geh.parser.demoInfoProvider)
 
 	geh.dispatch(events.OtherDeath{
 		Killer:            killer,
@@ -994,7 +994,7 @@ func (geh gameEventHandler) itemEvent(data map[string]*msg.CSVCMsg_GameEventKeyT
 	player := geh.playerByUserID32(data["userid"].GetValShort())
 
 	wepType := common.MapEquipment(data["item"].GetValString())
-	weapon := getPlayerWeapon(player, wepType)
+	weapon := getPlayerWeapon(player, wepType, geh.parser.demoInfoProvider)
 
 	return player, weapon
 }
@@ -1116,7 +1116,7 @@ func (geh gameEventHandler) getEquipmentInstance(player *common.Player, wepType 
 		return geh.getThrownGrenade(player.ControlledPawn(), wepType)
 	}
 
-	return getPlayerWeapon(player, wepType)
+	return getPlayerWeapon(player, wepType, geh.parser.demoInfoProvider)
 }
 
 // checks if two EquipmentElements are the same, considering that incendiary and molotov should be treated as identical
@@ -1127,7 +1127,7 @@ func isSameEquipmentElement(a common.EquipmentType, b common.EquipmentType) bool
 }
 
 // Returns the players instance of the weapon if applicable or a new instance otherwise.
-func getPlayerWeapon(player *common.Player, wepType common.EquipmentType) *common.Equipment {
+func getPlayerWeapon(player *common.Player, wepType common.EquipmentType, demoInfoProvider demoInfoProvider) *common.Equipment {
 	if player != nil {
 		alternateWepType := common.EquipmentAlternative(wepType)
 		for _, wep := range player.Weapons() {
@@ -1137,7 +1137,7 @@ func getPlayerWeapon(player *common.Player, wepType common.EquipmentType) *commo
 		}
 	}
 
-	wep := common.NewEquipment(wepType)
+	wep := common.NewEquipment(wepType, demoInfoProvider)
 
 	return wep
 }

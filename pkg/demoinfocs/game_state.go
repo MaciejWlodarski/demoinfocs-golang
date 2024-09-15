@@ -132,7 +132,7 @@ func getLastThrownGrenade(pl *common.Player, wepType common.EquipmentType) *comm
 	if pl != nil && pl.LastThrownGrenade != nil && wepType == pl.LastThrownGrenade.Type {
 		return pl.LastThrownGrenade
 	}
-	return common.NewEquipment(wepType)
+	return common.NewEquipment(wepType, pl.DemoInfo())
 }
 
 // IngameTick returns the latest actual tick number of the server during the game.
