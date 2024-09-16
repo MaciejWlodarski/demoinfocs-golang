@@ -106,6 +106,10 @@ func (gs *gameState) setPlayerLifeState(pl *common.Player, alive *bool) {
 }
 
 func (gs *gameState) setAlive(pl *common.Player, alive bool) {
+	if pl.Alive == alive {
+		return
+	}
+
 	var playerSpawn bool
 	if alive && !pl.Alive {
 		playerSpawn = true
@@ -117,14 +121,17 @@ func (gs *gameState) setAlive(pl *common.Player, alive bool) {
 		delete(gs.aliveByEntityID, pl.EntityID)
 		return
 	}
-	gs.aliveByEntityID[pl.Entity.ID()] = pl
+	gs.aliveByEntityID[pl.EntityID] = pl
 
 	if playerSpawn {
-		gs.demoInfo.parser.delayedEventHandlers = append(gs.demoInfo.parser.delayedEventHandlers, func() {
-			gs.demoInfo.parser.gameEventHandler.dispatch(events.PlayerSpawn{
-				Player: pl,
-			})
-		})
+		gs.demoInfo.parser.delayedEventHandlers = append(
+			gs.demoInfo.parser.delayedEventHandlers,
+			func() {
+				gs.demoInfo.parser.gameEventHandler.dispatch(events.PlayerSpawn{
+					Player: pl,
+				})
+			},
+		)
 	}
 }
 

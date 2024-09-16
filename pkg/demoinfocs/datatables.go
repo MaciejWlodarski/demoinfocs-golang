@@ -845,29 +845,22 @@ func (p *parser) bindWeapons() {
 func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	entityID := entity.ID()
 
-	proj, ok := p.gameState.grenadeProjectiles[entity.ID()]
-	if !ok {
-		proj := common.NewGrenadeProjectile(p.demoInfoProvider)
-		proj.Entity = entity
-		p.gameState.grenadeProjectiles[entityID] = proj
+	proj := common.NewGrenadeProjectile(p.demoInfoProvider)
+	proj.Entity = entity
+	p.gameState.grenadeProjectiles[entityID] = proj
 
-		ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
-		if ownerEntVal.Any != nil {
-			player := p.demoInfoProvider.FindPlayerByPawnHandle(ownerEntVal.Handle())
-			proj.Thrower = player
-			proj.Owner = player
-		}
-
-		proj.InitialPosition = entity.Property("m_vInitialPosition").Value().R3Vec()
-		proj.InitialVelocity = entity.Property("m_vInitialVelocity").Value().R3Vec()
+	ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
+	if ownerEntVal.Any != nil {
+		player := p.demoInfoProvider.FindPlayerByPawnHandle(ownerEntVal.Handle())
+		proj.Thrower = player
+		proj.Owner = player
 	}
+
+	proj.InitialPosition = entity.Property("m_vInitialPosition").Value().R3Vec()
+	proj.InitialVelocity = entity.Property("m_vInitialVelocity").Value().R3Vec()
 
 	var wep common.EquipmentType
 	entity.OnCreateFinished(func() { //nolint:wsl
-		if ok {
-			return
-		}
-
 		proj = p.gameState.grenadeProjectiles[entity.ID()]
 		modelVal := entity.PropertyValueMust("CBodyComponent.m_hModel")
 
@@ -921,10 +914,6 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	})
 
 	entity.OnDestroy(func() {
-		if ok {
-			return
-		}
-
 		if wep == common.EqFlash && !p.disableMimicSource1GameEvents {
 			p.gameEventHandler.dispatch(events.FlashExplode{
 				GrenadeEvent: events.GrenadeEvent{
