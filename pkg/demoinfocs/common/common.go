@@ -112,6 +112,13 @@ func (g *GrenadeProjectile) UniqueID() int64 {
 	return g.uniqueID
 }
 
+func (g *GrenadeProjectile) Team() Team {
+	if g.Owner == nil {
+		return Team(getUInt64(g.Entity, "m_iTeamNum"))
+	}
+	return g.Owner.Team
+}
+
 // NewGrenadeProjectile creates a grenade projectile and sets the Unique-ID.
 //
 // Intended for internal use only.

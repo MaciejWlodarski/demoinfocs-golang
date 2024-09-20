@@ -317,6 +317,7 @@ type Equipment struct {
 	EntityId int
 	Owner    *Player // The player carrying the equipment, not necessarily the buyer.
 	Skin     *Skin
+	State    int
 
 	uniqueID         int64 // Deprecated, use uniqueID2, see UniqueID() for why
 	uniqueID2        ulid.ULID
@@ -560,7 +561,13 @@ func (e *Equipment) DemoInfo() demoInfoProvider {
 //
 // Intended for internal use only.
 func NewEquipment(wep EquipmentType, demoInfoProvider demoInfoProvider) *Equipment {
-	return &Equipment{Type: wep, uniqueID: rand.Int63(), uniqueID2: ulid.Make(), demoInfoProvider: demoInfoProvider} //nolint:gosec
+	return &Equipment{
+		Type:             wep,
+		State:            -1,
+		uniqueID:         rand.Int63(),
+		uniqueID2:        ulid.Make(),
+		demoInfoProvider: demoInfoProvider,
+	} //nolint:gosec
 }
 
 var equipmentToAlternative = map[EquipmentType]EquipmentType{

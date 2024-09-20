@@ -135,11 +135,15 @@ func (gs *gameState) setAlive(pl *common.Player, alive bool) {
 	}
 }
 
-func getLastThrownGrenade(pl *common.Player, wepType common.EquipmentType) *common.Equipment {
+func getLastThrownGrenade(
+	pl *common.Player,
+	wepType common.EquipmentType,
+	demoInfoProvider demoInfoProvider,
+) *common.Equipment {
 	if pl != nil && pl.LastThrownGrenade != nil && wepType == pl.LastThrownGrenade.Type {
 		return pl.LastThrownGrenade
 	}
-	return common.NewEquipment(wepType, pl.DemoInfo())
+	return common.NewEquipment(wepType, demoInfoProvider)
 }
 
 // IngameTick returns the latest actual tick number of the server during the game.

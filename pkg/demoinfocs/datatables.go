@@ -461,6 +461,10 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 		}
 	})
 
+	controllerEntity.Property("m_hPlayerPawn").OnUpdate(func(val st.PropertyValue) {
+		p.gameState.setPlayerLifeState(pl, nil)
+	})
+
 	controllerEntity.OnDestroy(func() {
 		pl.IsConnected = false
 		delete(p.gameState.playersByEntityID, controllerEntity.ID())
@@ -623,38 +627,24 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		}
 	})
 
-	if leftHandProp := pawnEntity.Property("m_bLeftHanded"); leftHandProp != nil {
-		leftHandProp.OnUpdate(func(val st.PropertyValue) {
-			pl := getPlayerFromPawnEntity(pawnEntity)
-			if pl == nil || p.gameState.ingameTick == 0 {
-				return
-			}
-			p.eventDispatcher.Dispatch(events.HandSwitch{
-				Player: pl,
-				Left:   val.BoolVal(),
-			})
+	pawnEntity.Property("m_bLeftHanded").OnUpdate(func(val st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil || p.gameState.ingameTick == 0 {
+			return
+		}
+		p.eventDispatcher.Dispatch(events.HandSwitch{
+			Player: pl,
+			Left:   val.BoolVal(),
 		})
-	}
+	})
 
-	if lifeStateProp := pawnEntity.Property("m_lifeState"); lifeStateProp != nil {
-		lifeStateProp.OnUpdate(func(val st.PropertyValue) {
-			pl := getPlayerFromPawnEntity(pawnEntity)
-			if pl == nil {
-				return
-			}
-			p.gameState.setPlayerLifeState(pl, nil)
-		})
-	}
-
-	if playerPawnProp := pawnEntity.Property("m_hPlayerPawn"); playerPawnProp != nil {
-		playerPawnProp.OnUpdate(func(val st.PropertyValue) {
-			pl := getPlayerFromPawnEntity(pawnEntity)
-			if pl == nil {
-				return
-			}
-			p.gameState.setPlayerLifeState(pl, nil)
-		})
-	}
+	pawnEntity.Property("m_lifeState").OnUpdate(func(val st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil {
+			return
+		}
+		p.gameState.setPlayerLifeState(pl, nil)
+	})
 
 	spottedByMaskProp := pawnEntity.Property("m_bSpottedByMask.0000")
 	if spottedByMaskProp != nil {
@@ -845,6 +835,7 @@ func (p *parser) bindWeapons() {
 func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	entityID := entity.ID()
 
+	_, ok := p.gameState.grenadeProjectiles[entityID]
 	proj := common.NewGrenadeProjectile(p.demoInfoProvider)
 	proj.Entity = entity
 	p.gameState.grenadeProjectiles[entityID] = proj
@@ -871,12 +862,25 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 				wep = weaponType
 			} else {
 				getWepType := func(entity st.Entity) common.EquipmentType {
-					if _, ok := entity.PropertyValue("m_bDidSmokeEffect"); ok {
-						return common.EqSmoke
-					}
-					if val, ok := entity.PropertyValue("m_flDamage"); ok && val.Float() == 99 {
+					entName := entity.ServerClass().Name()
+					switch entName {
+					case "CDecoyProjectile":
+						return common.EqDecoy
+					case "CHEGrenadeProjectile":
 						return common.EqHE
+					case "CSmokeGrenadeProjectile":
+						return common.EqSmoke
+					case "CFlashbangProjectile":
+						return common.EqFlash
+					case "CMolotovProjectile":
+						isInc := entity.Property("m_bIsIncGrenade").Value().BoolVal()
+						if isInc {
+							return common.EqIncendiary
+						} else {
+							return common.EqMolotov
+						}
 					}
+
 					return common.EqUnknown
 				}
 				wep = getWepType(entity)
@@ -885,11 +889,15 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 			}
 		}
 
-		proj.WeaponInstance = getLastThrownGrenade(proj.Thrower, wep)
+		proj.WeaponInstance = getLastThrownGrenade(proj.Thrower, wep, p.demoInfoProvider)
 
 		unassert.NotNilf(proj.WeaponInstance, "couldn't find grenade instance for player")
 		if proj.WeaponInstance != nil {
 			unassert.NotNilf(proj.WeaponInstance.Owner, "getPlayerWeapon() returned weapon instance with Owner=nil")
+		}
+
+		if ok {
+			return
 		}
 
 		p.gameEventHandler.addThrownGrenade(proj.Thrower, proj.WeaponInstance)
@@ -914,6 +922,10 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	})
 
 	entity.OnDestroy(func() {
+		if _, ok := p.gameState.grenadeProjectiles[entityID]; !ok {
+			return
+		}
+
 		if wep == common.EqFlash && !p.disableMimicSource1GameEvents {
 			p.gameEventHandler.dispatch(events.FlashExplode{
 				GrenadeEvent: events.GrenadeEvent{
@@ -1053,6 +1065,10 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		}
 
 		owner := p.GameState().Participants().FindByPawnHandle(val.Handle())
+		if equipment.Owner == owner {
+			return
+		}
+
 		prevOwner := equipment.Owner
 		equipment.Owner = owner
 
@@ -1136,11 +1152,17 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 	entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		p.eventDispatcher.Dispatch(events.ItemStateUpdate{
-			State: int(val.S2UInt32()),
-			Owner: owner,
-			Item:  equipment,
-		})
+		state := int(val.S2UInt32())
+
+		if equipment.State != state {
+			p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+				State: state,
+				Owner: owner,
+				Item:  equipment,
+			})
+
+			equipment.State = state
+		}
 	})
 
 	entity.OnDestroy(func() {
