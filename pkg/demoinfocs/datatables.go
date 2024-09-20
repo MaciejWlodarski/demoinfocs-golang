@@ -763,7 +763,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 			}
 
 			entityID, wep := getWep(val)
-			wep.Owner = pl
+			// wep.Owner = pl
 
 			entityWasCreated := entityID != constants.EntityHandleIndexMaskSource2
 
@@ -1018,7 +1018,6 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 			Type:    events.WarnTypeMissingItemDefinitionIndex,
 			Message: "missing m_iItemDefinitionIndex property in weapon entity",
 		})
-
 		return
 	}
 
@@ -1151,18 +1150,19 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	}
 
 	entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
-		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
 		state := int(val.S2UInt32())
-
-		if equipment.State != state {
-			p.eventDispatcher.Dispatch(events.ItemStateUpdate{
-				State: state,
-				Owner: owner,
-				Item:  equipment,
-			})
-
-			equipment.State = state
+		if equipment.State == state {
+			return
 		}
+
+		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
+		p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+			State: state,
+			Owner: owner,
+			Item:  equipment,
+		})
+
+		equipment.State = state
 	})
 
 	entity.OnDestroy(func() {
