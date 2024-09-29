@@ -298,7 +298,7 @@ func (p *Player) SmokeGrenades() int {
 	return int(pv.S2UInt64())
 }
 
-func (p *Player) FireGrenades() int {
+func (p *Player) Molotovs() int {
 	pawnEntity := p.PlayerPawnEntity()
 	if pawnEntity == nil {
 		return 0
@@ -308,7 +308,42 @@ func (p *Player) FireGrenades() int {
 	if !ok {
 		return 0
 	}
-	return int(pv.S2UInt64())
+
+	for _, wep := range p.Inventory {
+		if wep.Type == EqMolotov {
+			return int(pv.S2UInt64())
+		}
+	}
+
+	if p.Team == TeamTerrorists {
+		return int(pv.S2UInt64())
+	}
+
+	return 0
+}
+
+func (p *Player) IncendiaryGrenades() int {
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
+		return 0
+	}
+
+	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
+	if !ok {
+		return 0
+	}
+
+	for _, wep := range p.Inventory {
+		if wep.Type == EqIncendiary {
+			return int(pv.S2UInt64())
+		}
+	}
+
+	if p.Team == TeamCounterTerrorists {
+		return int(pv.S2UInt64())
+	}
+
+	return 0
 }
 
 func (p *Player) DecoyGrenades() int {
