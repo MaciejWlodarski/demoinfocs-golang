@@ -282,6 +282,21 @@ type ActiveWeaponUpdate struct {
 	Weapon *common.Equipment
 }
 
+type MoneyUpdate struct {
+	Player *common.Player
+	Money  int
+}
+
+type KillsUpdate struct {
+	Player *common.Player
+	Kills  int
+}
+
+type DeathsUpdate struct {
+	Player *common.Player
+	Deaths int
+}
+
 type HandSwitch struct {
 	Player *common.Player
 	Left   bool

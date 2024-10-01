@@ -305,13 +305,17 @@ func (p *Player) Molotovs() int {
 	}
 
 	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
-	if !ok {
+	if !ok || pv.S2UInt64() == 0 {
 		return 0
 	}
 
 	for _, wep := range p.Inventory {
 		if wep.Type == EqMolotov {
 			return int(pv.S2UInt64())
+		}
+
+		if wep.Type == EqIncendiary {
+			return 0
 		}
 	}
 
@@ -329,13 +333,17 @@ func (p *Player) IncendiaryGrenades() int {
 	}
 
 	pv, ok := pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
-	if !ok {
+	if !ok || pv.S2UInt64() == 0 {
 		return 0
 	}
 
 	for _, wep := range p.Inventory {
 		if wep.Type == EqIncendiary {
 			return int(pv.S2UInt64())
+		}
+
+		if wep.Type == EqMolotov {
+			return 0
 		}
 	}
 

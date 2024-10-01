@@ -465,6 +465,27 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 		p.gameState.setPlayerLifeState(pl, nil)
 	})
 
+	controllerEntity.Property("m_pInGameMoneyServices.m_iAccount").OnUpdate(func(pv st.PropertyValue) {
+		p.eventDispatcher.Dispatch(events.MoneyUpdate{
+			Player: pl,
+			Money:  pv.Int(),
+		})
+	})
+
+	controllerEntity.Property("m_pActionTrackingServices.m_iKills").OnUpdate(func(pv st.PropertyValue) {
+		p.eventDispatcher.Dispatch(events.KillsUpdate{
+			Player: pl,
+			Kills:  pv.Int(),
+		})
+	})
+
+	controllerEntity.Property("m_pActionTrackingServices.m_iDeaths").OnUpdate(func(pv st.PropertyValue) {
+		p.eventDispatcher.Dispatch(events.DeathsUpdate{
+			Player: pl,
+			Deaths: pv.Int(),
+		})
+	})
+
 	controllerEntity.OnDestroy(func() {
 		pl.IsConnected = false
 		delete(p.gameState.playersByEntityID, controllerEntity.ID())
