@@ -1620,8 +1620,24 @@ func (p *parser) bindGameRules() {
 			p.gameState.tState.Timeouts = val.Int()
 		})
 
+		entity.Property(grPrefix("m_bTerroristTimeOutActive")).OnUpdate(func(val st.PropertyValue) {
+			if val.BoolVal() {
+				p.eventDispatcher.Dispatch(events.Timeout{
+					TeamState: &p.gameState.tState,
+				})
+			}
+		})
+
 		entity.Property(grPrefix("m_nCTTimeOuts")).OnUpdate(func(val st.PropertyValue) {
 			p.gameState.ctState.Timeouts = val.Int()
+		})
+
+		entity.Property(grPrefix("m_bCTTimeOutActive")).OnUpdate(func(val st.PropertyValue) {
+			if val.BoolVal() {
+				p.eventDispatcher.Dispatch(events.Timeout{
+					TeamState: &p.gameState.ctState,
+				})
+			}
 		})
 
 		entity.Property(grPrefix("m_bTechnicalTimeOut")).OnUpdate(func(val st.PropertyValue) {
