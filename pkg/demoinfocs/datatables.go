@@ -1418,6 +1418,12 @@ func (p *parser) bindGameRules() {
 			p.gameState.currentDefuser = nil
 			p.gameState.bomb.Reset()
 
+			for id, wep := range p.gameState.weapons {
+				if wep.Entity == nil || wep.Owner == nil {
+					delete(p.gameState.weapons, id)
+				}
+			}
+
 			if p.disableMimicSource1GameEvents {
 				return
 			}
@@ -1657,12 +1663,8 @@ func (p *parser) bindGameRules() {
 		// "m_timeUntilNextPhaseStarts"
 
 		// TODO: timeout data
-		// "m_bTerroristTimeOutActive"
-		// "m_bCTTimeOutActive"
 		// "m_flTerroristTimeOutRemaining"
 		// "m_flCTTimeOutRemaining"
-		// "m_nTerroristTimeOuts"
-		// "m_nCTTimeOuts"
 	})
 }
 

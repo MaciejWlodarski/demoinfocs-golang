@@ -515,7 +515,13 @@ func (p *Player) Controller() *Player {
 		return p
 	}
 
-	return p.demoInfoProvider.FindPlayerByHandle(playerPawn.S2UInt64())
+	controller := p.demoInfoProvider.FindPlayerByHandle(playerPawn.S2UInt64())
+
+	if controller == nil {
+		return p
+	}
+
+	return controller
 }
 
 // Health returns the player's health points, normally 0-100.
