@@ -749,6 +749,8 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 		if wep == nil {
 			// sometimes a weapon is assigned to a player before the weapon entity is created
 			wep = common.NewEquipment(common.EqUnknown, p.demoInfoProvider)
+			wep.State = 1
+
 			p.gameState.weapons[int(entityID)] = wep
 		}
 
@@ -1429,11 +1431,11 @@ func (p *parser) bindGameRules() {
 			p.gameState.currentDefuser = nil
 			p.gameState.bomb.Reset()
 
-			// for id, wep := range p.gameState.weapons {
-			// 	if wep.State == 0 {
-			// 		delete(p.gameState.weapons, id)
-			// 	}
-			// }
+			for id, wep := range p.gameState.weapons {
+				if wep.Type != common.EqUnknown && wep.State == 0 {
+					delete(p.gameState.weapons, id)
+				}
+			}
 
 			if p.disableMimicSource1GameEvents {
 				return
