@@ -1336,6 +1336,17 @@ func (p *parser) bindNewSmoke(entity st.Entity) {
 
 		if val.BoolVal() {
 			smk.ActivationTick = p.demoInfoProvider.IngameTick()
+
+			p.eventDispatcher.Dispatch(events.FakeSmokeStart{
+				GrenadeEvent: events.GrenadeEvent{
+					GrenadeType:     common.EqSmoke,
+					Position:        smk.Entity.Position(),
+					Thrower:         smk.Thrower(),
+					GrenadeEntityID: smk.Entity.ID(),
+					Projectile:      p.gameState.grenadeProjectiles[smk.Entity.ID()],
+				},
+			})
+
 		}
 	})
 

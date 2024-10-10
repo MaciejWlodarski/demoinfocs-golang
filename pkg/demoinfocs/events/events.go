@@ -349,6 +349,10 @@ type SmokeStart struct {
 	GrenadeEvent
 }
 
+type FakeSmokeStart struct {
+	GrenadeEvent
+}
+
 // SmokeExpired signals that a smoke as completely faded away.
 type SmokeExpired struct {
 	GrenadeEvent
