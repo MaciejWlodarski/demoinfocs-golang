@@ -1429,11 +1429,11 @@ func (p *parser) bindGameRules() {
 			p.gameState.currentDefuser = nil
 			p.gameState.bomb.Reset()
 
-			for id, wep := range p.gameState.weapons {
-				if wep.State == 0 {
-					delete(p.gameState.weapons, id)
-				}
-			}
+			// for id, wep := range p.gameState.weapons {
+			// 	if wep.State == 0 {
+			// 		delete(p.gameState.weapons, id)
+			// 	}
+			// }
 
 			if p.disableMimicSource1GameEvents {
 				return
