@@ -1430,7 +1430,7 @@ func (p *parser) bindGameRules() {
 			p.gameState.bomb.Reset()
 
 			for id, wep := range p.gameState.weapons {
-				if wep.Entity == nil || wep.Owner == nil {
+				if wep.State == 0 {
 					delete(p.gameState.weapons, id)
 				}
 			}
