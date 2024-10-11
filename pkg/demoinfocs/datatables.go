@@ -1432,7 +1432,7 @@ func (p *parser) bindGameRules() {
 			p.gameState.bomb.Reset()
 
 			for id, wep := range p.gameState.weapons {
-				if wep.Type != common.EqUnknown && wep.State == 0 {
+				if wep.Type != common.EqUnknown && wep.State == 0 && wep.Owner == nil {
 					delete(p.gameState.weapons, id)
 				}
 			}
