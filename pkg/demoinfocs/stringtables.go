@@ -69,7 +69,10 @@ func (p *parser) updatePlayerFromRawIfExists(index int, raw common.PlayerInfo) {
 	p.gameState.indexPlayerBySteamID(pl)
 	p.gameState.indexPlayerByUserID(pl)
 
-	if !contains(pl.Names, newName) {
+	if pl.IsUnknown {
+		pl.Name = newName
+		pl.IsUnknown = false
+	} else if !contains(pl.Names, newName) {
 		pl.Names = append(pl.Names, newName)
 	}
 	if nameChanged {

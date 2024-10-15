@@ -1431,11 +1431,11 @@ func (p *parser) bindGameRules() {
 			p.gameState.currentDefuser = nil
 			p.gameState.bomb.Reset()
 
-			for id, wep := range p.gameState.weapons {
-				if wep.Type != common.EqUnknown && wep.State == 0 && wep.OwnerHandle() == constants.InvalidEntityHandleSource2 {
-					delete(p.gameState.weapons, id)
-				}
-			}
+			// for id, wep := range p.gameState.weapons {
+			// 	if wep.Type != common.EqUnknown && wep.State == 0 && wep.OwnerHandle() == constants.InvalidEntityHandleSource2 {
+			// 		delete(p.gameState.weapons, id)
+			// 	}
+			// }
 
 			if p.disableMimicSource1GameEvents {
 				return
