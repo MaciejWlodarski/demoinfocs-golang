@@ -1,8 +1,6 @@
 package common
 
 import (
-	"fmt"
-
 	st "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
 )
 
@@ -10,7 +8,6 @@ type Smoke struct {
 	Entity         st.Entity
 	IsActive       bool
 	ActivationTick int
-	VoxelFrameData []uint8
 
 	demoInfoProvider demoInfoProvider
 	thrower          *Player
@@ -25,19 +22,6 @@ func (smk *Smoke) Thrower() *Player {
 
 	handleProp := smk.Entity.Property("m_hOwnerEntity").Value()
 	return smk.demoInfoProvider.FindPlayerByPawnHandle(handleProp.Handle())
-}
-
-func (smk *Smoke) Voxel() []uint8 {
-	voxels := make([]uint8, 0)
-
-	for i := 0; i < 10000; i++ {
-		val := smk.Entity.Property("m_VoxelFrameData." + fmt.Sprintf("%04d", i)).Value()
-		if val.Any == nil {
-			break
-		}
-		voxels = append(voxels, uint8(val.S2UInt64()))
-	}
-	return voxels
 }
 
 func (smk *Smoke) ExpirationTick() int {

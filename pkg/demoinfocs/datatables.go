@@ -1352,15 +1352,15 @@ func (p *parser) bindNewSmoke(entity st.Entity) {
 		}
 	})
 
-	entity.Property("m_VoxelFrameData").OnUpdate(func(val st.PropertyValue) {
-		for i := len(smk.VoxelFrameData); i < 10000; i++ {
-			val := smk.Entity.Property("m_VoxelFrameData." + fmt.Sprintf("%04d", i)).Value()
-			if val.Any == nil {
-				break
-			}
-			smk.VoxelFrameData = append(smk.VoxelFrameData, uint8(val.S2UInt64()))
-		}
-	})
+	// entity.Property("m_VoxelFrameData").OnUpdate(func(val st.PropertyValue) {
+	// 	for i := len(smk.VoxelFrameData); i < 10000; i++ {
+	// 		val := smk.Entity.Property("m_VoxelFrameData." + fmt.Sprintf("%04d", i)).Value()
+	// 		if val.Any == nil {
+	// 			break
+	// 		}
+	// 		smk.VoxelFrameData = append(smk.VoxelFrameData, uint8(val.S2UInt64()))
+	// 	}
+	// })
 }
 
 func (p *parser) smokeExpired(smk *common.Smoke) {
