@@ -866,6 +866,19 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 	ownerEntVal := entity.PropertyValueMust("m_hOwnerEntity")
 	if ownerEntVal.Any != nil {
 		player := p.demoInfoProvider.FindPlayerByPawnHandle(ownerEntVal.Handle())
+		if player == nil {
+			projPos := proj.Position()
+			minDistance := math.MaxFloat64
+
+			for _, pl := range p.gameState.aliveByEntityID {
+				distance := getDistanceBetweenVectors(pl.Position(), projPos)
+				if distance < minDistance {
+					minDistance = distance
+					player = pl
+				}
+			}
+		}
+
 		proj.Thrower = player
 		proj.Owner = player
 	}
@@ -1702,7 +1715,7 @@ func (p *parser) bindHostages() {
 }
 
 func getDistanceBetweenVectors(vectorA r3.Vector, vectorB r3.Vector) float64 {
-	return math.Sqrt(math.Pow(vectorA.X-vectorB.X, 2) + math.Pow(vectorA.Y-vectorB.Y, 2) + math.Pow(vectorA.Z-vectorB.Z, 2))
+	return math.Pow(vectorA.X-vectorB.X, 2) + math.Pow(vectorA.Y-vectorB.Y, 2) + math.Pow(vectorA.Z-vectorB.Z, 2)
 }
 
 func (p *parser) getClosestBombsiteFromPosition(position r3.Vector) events.Bombsite {
