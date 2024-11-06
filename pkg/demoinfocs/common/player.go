@@ -33,6 +33,9 @@ type Player struct {
 	PreviousFramePosition r3.Vector // CS2 only, used to compute velocity as it's not networked in CS2 demos
 	Alive                 bool      // True if player is alive
 	LastThrownGrenade     *Equipment
+
+	Kills  int
+	Deaths int
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {
@@ -701,16 +704,6 @@ func (p *Player) Score() int {
 // Color returns the players color as shown on the minimap.
 func (p *Player) Color() Color {
 	return Color(getInt(p.Entity, "m_iCompTeammateColor"))
-}
-
-// Kills returns the amount of kills the player has as shown on the scoreboard.
-func (p *Player) Kills() int {
-	return getInt(p.Entity, "m_pActionTrackingServices.m_iKills")
-}
-
-// Deaths returns the amount of deaths the player has as shown on the scoreboard.
-func (p *Player) Deaths() int {
-	return getInt(p.Entity, "m_pActionTrackingServices.m_iDeaths")
 }
 
 // Assists returns the amount of assists the player has as shown on the scoreboard.

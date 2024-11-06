@@ -473,16 +473,28 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 	})
 
 	controllerEntity.Property("m_pActionTrackingServices.m_iKills").OnUpdate(func(pv st.PropertyValue) {
+		val := pv.Int()
+		if val == pl.Kills {
+			return
+		}
+
+		pl.Kills = val
 		p.eventDispatcher.Dispatch(events.KillsUpdate{
 			Player: pl,
-			Kills:  pv.Int(),
+			Kills:  val,
 		})
 	})
 
 	controllerEntity.Property("m_pActionTrackingServices.m_iDeaths").OnUpdate(func(pv st.PropertyValue) {
+		val := pv.Int()
+		if val == pl.Deaths {
+			return
+		}
+
+		pl.Deaths = val
 		p.eventDispatcher.Dispatch(events.DeathsUpdate{
 			Player: pl,
-			Deaths: pv.Int(),
+			Deaths: val,
 		})
 	})
 
