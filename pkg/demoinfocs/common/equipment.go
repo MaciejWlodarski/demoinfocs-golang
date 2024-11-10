@@ -398,29 +398,7 @@ func (e *Equipment) AmmoReserve() int {
 			return 0
 		}
 
-		var ammoProp st.PropertyValue
-		ok := false
-		pawnEntity := e.Owner.PlayerPawnEntity()
-
-		switch e.Type {
-		case EqDecoy:
-			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0017")
-		case EqMolotov:
-			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
-		case EqIncendiary:
-			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0016")
-		case EqFlash:
-			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0014")
-		case EqSmoke:
-			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0015")
-		case EqHE:
-			ammoProp, ok = pawnEntity.PropertyValue("m_pWeaponServices.m_iAmmo.0013")
-		}
-
-		if !ok || ammoProp.Any == nil {
-			return 0
-		}
-		return int(ammoProp.S2UInt64())
+		return e.Owner.GetGrenadeAmmo(e.Type)
 	}
 
 	if propVal, ok := e.Entity.PropertyValue("m_pReserveAmmo.0000"); ok && propVal.Any != nil {

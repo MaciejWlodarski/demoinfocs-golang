@@ -33,6 +33,7 @@ type Player struct {
 	PreviousFramePosition r3.Vector // CS2 only, used to compute velocity as it's not networked in CS2 demos
 	Alive                 bool      // True if player is alive
 	LastThrownGrenade     *Equipment
+	GrenadesAmmo          [5]int
 
 	Kills  int
 	Deaths int
@@ -260,6 +261,25 @@ func (p *Player) Weapons() []*Equipment {
 	}
 
 	return res
+}
+
+func (p *Player) GetGrenadeAmmo(eqType EquipmentType) int {
+	switch eqType {
+	case EqDecoy:
+		return p.GrenadesAmmo[0]
+	case EqMolotov:
+		return p.GrenadesAmmo[1]
+	case EqIncendiary:
+		return p.GrenadesAmmo[1]
+	case EqFlash:
+		return p.GrenadesAmmo[2]
+	case EqSmoke:
+		return p.GrenadesAmmo[3]
+	case EqHE:
+		return p.GrenadesAmmo[4]
+	}
+
+	return 0
 }
 
 func (p *Player) HEGrenades() int {

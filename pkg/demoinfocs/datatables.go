@@ -704,15 +704,25 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 				return
 			}
 
+			val := int(pv.S2UInt64())
+
 			var grenadeType common.EquipmentType
 			switch i {
 			case 13:
+				pl.GrenadesAmmo[4] = val
+
 				grenadeType = common.EqHE
 			case 14:
+				pl.GrenadesAmmo[2] = val
+
 				grenadeType = common.EqFlash
 			case 15:
+				pl.GrenadesAmmo[3] = val
+
 				grenadeType = common.EqSmoke
 			case 16:
+				pl.GrenadesAmmo[1] = val
+
 				grenadeType = common.EqIncendiary
 
 				if pl.Team == common.TeamTerrorists {
@@ -726,13 +736,15 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 					}
 				}
 			case 17:
+				pl.GrenadesAmmo[0] = val
+
 				grenadeType = common.EqDecoy
 			}
 
 			p.eventDispatcher.Dispatch(events.GrenadeUpdate{
 				Player:   pl,
 				Type:     grenadeType,
-				Quantity: int(pv.S2UInt64()),
+				Quantity: val,
 			})
 		})
 	}
