@@ -475,3 +475,7 @@ func (p demoInfoProvider) PlayersAliveByEntityID() map[int]*common.Player {
 func (p demoInfoProvider) Bomb() *common.Bomb {
 	return &p.parser.gameState.bomb
 }
+
+func (p demoInfoProvider) Weapons() map[int]*common.Equipment {
+	return p.parser.gameState.weapons
+}

@@ -1066,7 +1066,7 @@ func (geh gameEventHandler) getThrownGrenade(p *common.Player, wepType common.Eq
 		}
 	}
 
-	return nil
+	return common.NewEquipment(wepType, p.DemoInfo())
 }
 
 func (geh gameEventHandler) deleteThrownGrenade(p *common.Player, wepType common.EquipmentType) {

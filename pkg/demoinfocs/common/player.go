@@ -828,6 +828,7 @@ type demoInfoProvider interface {
 	TeamState(Team) *TeamState
 	PlayersAliveByEntityID() map[int]*Player
 	Bomb() *Bomb
+	Weapons() map[int]*Equipment
 }
 
 // NewPlayer creates a *Player with an initialized equipment map.
