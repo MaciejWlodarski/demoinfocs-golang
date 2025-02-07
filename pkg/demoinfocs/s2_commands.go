@@ -2,6 +2,7 @@ package demoinfocs
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"sort"
 	"time"
@@ -15,8 +16,6 @@ import (
 )
 
 func (p *parser) handleSendTables(msg *msgs2.CDemoSendTables) {
-	p.msgDispatcher.SyncAllQueues()
-
 	err := p.stParser.ParsePacket(msg.Data)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to unmarshal flattened serializer"))
@@ -24,8 +23,6 @@ func (p *parser) handleSendTables(msg *msgs2.CDemoSendTables) {
 }
 
 func (p *parser) handleClassInfo(msg *msgs2.CDemoClassInfo) {
-	p.msgDispatcher.SyncAllQueues()
-
 	err := p.stParser.OnDemoClassInfo(msg)
 	if err != nil {
 		panic(err)
@@ -40,7 +37,6 @@ func (p *parser) handleClassInfo(msg *msgs2.CDemoClassInfo) {
 
 var netMsgCreators = map[msgs2.NET_Messages]NetMessageCreator{
 	msgs2.NET_Messages_net_NOP:                        func() proto.Message { return &msgs2.CNETMsg_NOP{} },
-	msgs2.NET_Messages_net_Disconnect_Legacy:          func() proto.Message { return &msgs2.CNETMsg_Disconnect_Legacy{} },
 	msgs2.NET_Messages_net_SplitScreenUser:            func() proto.Message { return &msgs2.CNETMsg_SplitScreenUser{} },
 	msgs2.NET_Messages_net_Tick:                       func() proto.Message { return &msgs2.CNETMsg_Tick{} },
 	msgs2.NET_Messages_net_StringCmd:                  func() proto.Message { return &msgs2.CNETMsg_StringCmd{} },
@@ -82,7 +78,6 @@ var svcMsgCreators = map[msgs2.SVC_Messages]NetMessageCreator{
 	msgs2.SVC_Messages_svc_FullFrameSplit:          func() proto.Message { return &msgs2.CSVCMsg_FullFrameSplit{} },
 	msgs2.SVC_Messages_svc_RconServerDetails:       func() proto.Message { return &msgs2.CSVCMsg_RconServerDetails{} },
 	msgs2.SVC_Messages_svc_UserMessage:             func() proto.Message { return &msgs2.CSVCMsg_UserMessage{} },
-	msgs2.SVC_Messages_svc_HltvReplay:              func() proto.Message { return &msgs2.CSVCMsg_HltvReplay{} },
 	msgs2.SVC_Messages_svc_Broadcast_Command:       func() proto.Message { return &msgs2.CSVCMsg_Broadcast_Command{} },
 	msgs2.SVC_Messages_svc_HltvFixupOperatorStatus: func() proto.Message { return &msgs2.CSVCMsg_HltvFixupOperatorStatus{} },
 	msgs2.SVC_Messages_svc_UserCmds:                func() proto.Message { return &msgs2.CSVCMsg_UserCommands{} },
@@ -133,6 +128,7 @@ var usrMsgCreators = map[msgs2.EBaseUserMessages]NetMessageCreator{
 	msgs2.EBaseUserMessages_UM_InventoryResponse:       func() proto.Message { return &msgs2.CUserMessage_Inventory_Response{} },
 	msgs2.EBaseUserMessages_UM_UtilActionResponse:      func() proto.Message { return &msgs2.CUserMessage_UtilMsg_Response{} },
 	msgs2.EBaseUserMessages_UM_DllStatusResponse:       func() proto.Message { return &msgs2.CUserMessage_DllStatus{} },
+	msgs2.EBaseUserMessages_UM_RequestDiagnostic:       func() proto.Message { return &msgs2.CUserMessageRequestDiagnostic{} },
 	msgs2.EBaseUserMessages_UM_DiagnosticResponse:      func() proto.Message { return &msgs2.CUserMessage_Diagnostic_Response{} },
 	msgs2.EBaseUserMessages_UM_ExtraUserData:           func() proto.Message { return &msgs2.CUserMessage_ExtraUserData{} },
 	msgs2.EBaseUserMessages_UM_NotifyResponseFound:     func() proto.Message { return &msgs2.CUserMessage_NotifyResponseFound{} },
@@ -375,12 +371,36 @@ func (p *parser) handleFileInfo(msg *msgs2.CDemoFileInfo) {
 	p.header.PlaybackTime = time.Duration(*msg.PlaybackTime) * time.Second
 }
 
+//go:embed event-list-dump/*.bin
+var eventListFolder embed.FS
+
+func getGameEventListBinForProtocol(networkProtocol int) ([]byte, error) {
+	switch {
+	case networkProtocol < 13992:
+		return eventListFolder.ReadFile("event-list-dump/13990.bin")
+	case networkProtocol >= 13992 && networkProtocol < 14023:
+		return eventListFolder.ReadFile("event-list-dump/13992.bin")
+	default:
+		return eventListFolder.ReadFile("event-list-dump/14023.bin")
+	}
+}
+
 func (p *parser) handleDemoFileHeader(msg *msgs2.CDemoFileHeader) {
 	p.header.ClientName = msg.GetClientName()
 	p.header.ServerName = msg.GetServerName()
 	p.header.GameDirectory = msg.GetGameDirectory()
 	p.header.MapName = msg.GetMapName()
-	p.header.NetworkProtocol = int(msg.GetNetworkProtocol())
+	networkProtocol := int(msg.GetNetworkProtocol())
+	p.header.NetworkProtocol = networkProtocol
+
+	if p.source2FallbackGameEventListBin == nil {
+		gameEventListBin, err := getGameEventListBinForProtocol(networkProtocol)
+		if err != nil {
+			panic(fmt.Sprintf("failed to load game event list for protocol %d: %v", networkProtocol, err))
+		}
+
+		p.source2FallbackGameEventListBin = gameEventListBin
+	}
 }
 
 func (p *parser) updatePlayersPreviousFramePosition() {

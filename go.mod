@@ -10,12 +10,12 @@ require (
 	github.com/markus-wa/quickhull-go/v2 v2.2.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/pkg/errors v0.9.1
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.36.4
 )
 
 require (
 	github.com/google/go-cmp v0.5.8 // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 )
 
 go 1.23

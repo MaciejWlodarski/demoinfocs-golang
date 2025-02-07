@@ -733,6 +733,7 @@ const (
 	WarnTypeUnknownEquipmentIndex
 	WarnTypeMissingItemDefinitionIndex
 	WarnTypeStringTableParsingFailure // Should happen only with CS2 POV demos
+	WarnTypePacketEntitiesPanic
 )
 
 // ParserWarn signals that a non-fatal problem occurred during parsing.

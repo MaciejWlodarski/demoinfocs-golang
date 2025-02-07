@@ -57,16 +57,17 @@ type tuple struct {
 }
 
 type Parser struct {
-	serializers       map[string]*serializer
-	classIdSize       uint32
-	classBaselines    map[int32][]byte
-	classesById       map[int32]*class
-	classesByName     map[string]*class
-	entityFullPackets int
-	entities          map[int32]*Entity
-	entityHandlers    []st.EntityHandler
-	pathCache         []*fieldPath
-	tuplesCache       []tuple
+	serializers                 map[string]*serializer
+	classIdSize                 uint32
+	classBaselines              map[int32][]byte
+	classesById                 map[int32]*class
+	classesByName               map[string]*class
+	entityFullPackets           int
+	entities                    map[int32]*Entity
+	entityHandlers              []st.EntityHandler
+	pathCache                   []*fieldPath
+	tuplesCache                 []tuple
+	packetEntitiesPanicWarnFunc func(error)
 }
 
 func (p *Parser) ReadEnterPVS(r *bit.BitReader, index int, entities map[int]st.Entity, slot int) st.Entity {
@@ -110,13 +111,14 @@ func (p *Parser) Entities() map[int32]*Entity {
 	return p.entities
 }
 
-func NewParser() *Parser {
+func NewParser(packetEntitiesPanicWarnFunc func(error)) *Parser {
 	return &Parser{
-		serializers:    make(map[string]*serializer),
-		classBaselines: make(map[int32][]byte),
-		classesById:    make(map[int32]*class),
-		classesByName:  make(map[string]*class),
-		entities:       make(map[int32]*Entity),
+		serializers:                 make(map[string]*serializer),
+		classBaselines:              make(map[int32][]byte),
+		classesById:                 make(map[int32]*class),
+		classesByName:               make(map[string]*class),
+		entities:                    make(map[int32]*Entity),
+		packetEntitiesPanicWarnFunc: packetEntitiesPanicWarnFunc,
 	}
 }
 
