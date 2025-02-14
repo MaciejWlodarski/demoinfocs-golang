@@ -515,8 +515,12 @@ func (p *parser) handleFrameParsed(*frameParsedTokenType) {
 	p.processFrameGameEvents()
 
 	for entityID, eq := range p.gameState.wepsToRemove {
-		eq.Owner = nil
-		delete(p.gameState.weapons, entityID)
+		oldEq, ok := p.gameState.weapons[entityID]
+		if ok && oldEq.UniqueID2() == eq.UniqueID2() {
+			eq.Owner = nil
+			delete(p.gameState.weapons, entityID)
+		}
+
 		delete(p.gameState.wepsToRemove, entityID)
 	}
 
