@@ -810,7 +810,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 			}
 
 			entityID, wep := getWep(val)
-			wep.Owner = pl
+			// wep.Owner = pl
 
 			entityWasCreated := entityID != constants.EntityHandleIndexMaskSource2
 
