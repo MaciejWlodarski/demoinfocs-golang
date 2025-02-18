@@ -810,7 +810,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 			}
 
 			entityID, wep := getWep(val)
-			// wep.Owner = pl
+			wep.Owner = pl
 
 			entityWasCreated := entityID != constants.EntityHandleIndexMaskSource2
 
@@ -1124,9 +1124,6 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		}
 
 		owner := p.GameState().Participants().FindByPawnHandle(val.Handle())
-		if equipment.Owner == owner {
-			return
-		}
 
 		prevOwner := equipment.Owner
 		equipment.Owner = owner
