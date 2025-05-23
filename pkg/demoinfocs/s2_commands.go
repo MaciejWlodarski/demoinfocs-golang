@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/markus-wa/demoinfocs-golang/v4/internal/bitread"
+	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 )
@@ -409,7 +410,18 @@ func (p *parser) handleDemoFileHeader(msg *msgs2.CDemoFileHeader) {
 }
 
 func (p *parser) updatePlayersPreviousFramePosition() {
+	currentTick := p.gameState.IngameTick()
+
 	for _, player := range p.GameState().Participants().AliveByEntID() {
-		player.PreviousFramePosition = player.Position()
+		if player.PrevPosition[0] != nil && player.PrevPosition[0].Tick == currentTick {
+			continue
+		}
+
+		player.PrevPosition[1] = player.PrevPosition[0]
+
+		player.PrevPosition[0] = &common.PrevPosition{
+			Tick:     currentTick,
+			Position: player.Position(),
+		}
 	}
 }

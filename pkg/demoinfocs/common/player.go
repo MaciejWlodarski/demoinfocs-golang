@@ -1,6 +1,7 @@
 package common
 
 import (
+	"math"
 	"time"
 
 	"github.com/golang/geo/r3"
@@ -9,34 +10,40 @@ import (
 	st "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
 )
 
+type PrevPosition struct {
+	Tick     int
+	Position r3.Vector
+}
+
 // Player contains mostly game-relevant player information.
 type Player struct {
 	demoInfoProvider demoInfoProvider // provider for demo info such as tick-rate or current tick
 
-	SteamID64             uint64 // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
-	UserID                int    // Mostly used in game-events to address this player
-	Name                  string // Steam / in-game user name
-	Names                 []string
-	Inventory             map[int]*Equipment // All weapons / equipment the player is currently carrying. See also Weapons().
-	EntityID              int                // Usually the same as Entity.ID() but may be different between player death and re-spawn.
-	Entity                st.Entity          // May be nil between player-death and re-spawn
-	FlashDuration         float32            // Blindness duration from the flashbang currently affecting the player (seconds)
-	FlashTick             int                // In-game tick at which the player was last flashed
-	TeamState             *TeamState         // When keeping the reference make sure you notice when the player changes teams
-	Team                  Team               // Team identifier for the player (e.g. TeamTerrorists or TeamCounterTerrorists).
-	IsBot                 bool               // True if this is a bot-entity. See also IsControllingBot and ControlledBot().
-	IsConnected           bool
-	IsDefusing            bool
-	IsPlanting            bool
-	IsReloading           bool
-	IsUnknown             bool      // Used to identify unknown/broken players. see https://github.com/markus-wa/demoinfocs-golang/issues/162
-	PreviousFramePosition r3.Vector // CS2 only, used to compute velocity as it's not networked in CS2 demos
-	Alive                 bool      // True if player is alive
-	LastThrownGrenade     *Equipment
-	GrenadesAmmo          [5]int
+	SteamID64         uint64 // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
+	UserID            int    // Mostly used in game-events to address this player
+	Name              string // Steam / in-game user name
+	Names             []string
+	Inventory         map[int]*Equipment // All weapons / equipment the player is currently carrying. See also Weapons().
+	EntityID          int                // Usually the same as Entity.ID() but may be different between player death and re-spawn.
+	Entity            st.Entity          // May be nil between player-death and re-spawn
+	FlashDuration     float32            // Blindness duration from the flashbang currently affecting the player (seconds)
+	FlashTick         int                // In-game tick at which the player was last flashed
+	TeamState         *TeamState         // When keeping the reference make sure you notice when the player changes teams
+	Team              Team               // Team identifier for the player (e.g. TeamTerrorists or TeamCounterTerrorists).
+	IsBot             bool               // True if this is a bot-entity. See also IsControllingBot and ControlledBot().
+	IsConnected       bool
+	IsDefusing        bool
+	IsPlanting        bool
+	IsReloading       bool
+	IsUnknown         bool // Used to identify unknown/broken players. see https://github.com/markus-wa/demoinfocs-golang/issues/162
+	Alive             bool // True if player is alive
+	LastThrownGrenade *Equipment
+	GrenadesAmmo      [5]int
 
 	Kills  int
 	Deaths int
+
+	PrevPosition [2]*PrevPosition
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {
@@ -646,6 +653,45 @@ func (p *Player) Position() r3.Vector {
 	return r3.Vector{}
 }
 
+func (p *Player) VelocityXY() float64 {
+	posNew := p.PrevPosition[0]
+	posOld := p.PrevPosition[1]
+
+	if posNew == nil || posOld == nil {
+		return 0
+	}
+
+	deltaTicks := posNew.Tick - posOld.Tick
+	if deltaTicks <= 0 {
+		return 0
+	}
+
+	dx := posNew.Position.X - posOld.Position.X
+	dy := posNew.Position.Y - posOld.Position.Y
+
+	distance := math.Hypot(dx, dy)
+	unitsPerTick := distance / float64(deltaTicks)
+	return unitsPerTick * 64.0
+}
+
+func (p *Player) VelocityZ() float64 {
+	posNew := p.PrevPosition[0]
+	posOld := p.PrevPosition[1]
+
+	if posNew == nil || posOld == nil {
+		return 0
+	}
+
+	deltaTicks := posNew.Tick - posOld.Tick
+	if deltaTicks <= 0 {
+		return 0
+	}
+
+	dz := posNew.Position.Z - posOld.Position.Z
+	unitsPerTick := math.Abs(dz) / float64(deltaTicks)
+	return unitsPerTick * 64.0
+}
+
 // see https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/public/const.h#L146-L188
 const (
 	flOnGround = 1 << iota
@@ -836,10 +882,9 @@ type demoInfoProvider interface {
 // Intended for internal use only.
 func NewPlayer(demoInfoProvider demoInfoProvider) *Player {
 	return &Player{
-		Names:                 make([]string, 0),
-		Inventory:             make(map[int]*Equipment),
-		demoInfoProvider:      demoInfoProvider,
-		PreviousFramePosition: r3.Vector{},
+		Names:            make([]string, 0),
+		Inventory:        make(map[int]*Equipment),
+		demoInfoProvider: demoInfoProvider,
 	}
 }
 
