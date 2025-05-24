@@ -299,6 +299,50 @@ func MapEquipment(eqName string) EquipmentType {
 	return wep
 }
 
+var EquipmentMaxSpeed = map[EquipmentType]int{
+	// Pistols
+	EqDeagle:       230,
+	EqRevolver:     180,
+	EqDualBerettas: 240,
+	EqFiveSeven:    240,
+	EqGlock:        240,
+	EqP2000:        240,
+	EqUSP:          240,
+	EqP250:         240,
+	EqCZ:           240,
+	EqTec9:         240,
+
+	// SMGs
+	EqBizon: 240,
+	EqMac10: 240,
+	EqMP7:   220,
+	EqMP5:   235,
+	EqMP9:   240,
+	EqP90:   230,
+	EqUMP:   230,
+
+	// Heavy – Shotguns & LMGs
+	EqMag7:     225,
+	EqNova:     220,
+	EqSawedOff: 210,
+	EqXM1014:   215,
+	EqM249:     195,
+	EqNegev:    150,
+
+	// Rifles
+	EqAK47:   215,
+	EqAUG:    220,
+	EqFamas:  220,
+	EqGalil:  215,
+	EqM4A4:   225,
+	EqM4A1:   225,
+	EqSG553:  210,
+	EqSSG08:  230,
+	EqAWP:    200,
+	EqScar20: 215,
+	EqG3SG1:  215,
+}
+
 // ZoomLevel contains how far a player is zoomed in.
 type ZoomLevel int
 
@@ -443,6 +487,57 @@ func (e *Equipment) AccuracyPenalty() float32 {
 		return 0
 	}
 	return val.Float()
+}
+
+func remapValClamped(val, A, B, C, D float64) float64 {
+	if A == B {
+		if val >= B {
+			return D
+		}
+		return C
+	}
+
+	cVal := (val - A) / (B - A)
+	if cVal < 0 {
+		cVal = 0
+	} else if cVal > 1 {
+		cVal = 1
+	}
+
+	return C + (D-C)*cVal
+}
+
+func roundTo(x float64, places int) float64 {
+	pow := math.Pow(10, float64(places))
+	return math.Round(x*pow) / pow
+}
+
+func (e *Equipment) MovementInaccuracyScale() float64 {
+	if e.Entity == nil || e.Owner == nil {
+		return 0
+	}
+
+	const DUCK_SPEED_MODIFIER float64 = 0.34
+	const MOVEMENT_CURVE01_EXPONENT float64 = 0.25
+
+	velocity := e.Owner.Velocity()
+	speed := roundTo(math.Hypot(velocity.X, velocity.Y), 2)
+
+	maxSpeed := float64(EquipmentMaxSpeed[e.Type])
+
+	movementInaccuracyScale := remapValClamped(
+		speed,
+		maxSpeed*DUCK_SPEED_MODIFIER,
+		maxSpeed*0.95,
+		0.0, 1.0,
+	)
+
+	if movementInaccuracyScale == 0 {
+		return 0
+	}
+
+	movementInaccuracyScale = math.Pow(movementInaccuracyScale, MOVEMENT_CURVE01_EXPONENT)
+	return movementInaccuracyScale
 }
 
 func (e *Equipment) JumpThrow() bool {

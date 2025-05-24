@@ -642,6 +642,99 @@ func (p *Player) ViewDirectionY() float32 {
 	return 0
 }
 
+func (p *Player) ViewDirection() r3.Vector {
+	if pawnEntity := p.PlayerPawnEntity(); pawnEntity != nil {
+		return pawnEntity.PropertyValueMust("m_angEyeAngles").R3Vec()
+	}
+
+	return r3.Vector{}
+}
+
+func distanceSqToViewRaySegment(rayOrigin, rayDir, segStart, segEnd r3.Vector) float64 {
+	u := rayDir
+	v := segEnd.Sub(segStart)
+	w := rayOrigin.Sub(segStart)
+
+	a := u.Dot(u)
+	b := u.Dot(v)
+	c := v.Dot(v)
+	d := u.Dot(w)
+	e := v.Dot(w)
+
+	denom := a*c - b*b
+	var sc, tc float64
+
+	if denom != 0 {
+		sc = (b*e - c*d) / denom
+	} else {
+		sc = 0
+	}
+
+	tc = (a*e - b*d) / denom
+	if tc < 0 {
+		tc = 0
+	} else if tc > 1 {
+		tc = 1
+	}
+
+	closestRay := rayOrigin.Add(u.Mul(sc))
+	closestSeg := segStart.Add(v.Mul(tc))
+
+	return closestRay.Sub(closestSeg).Norm2()
+}
+
+func angleToForward(pitch, yaw float64) r3.Vector {
+	p := pitch * math.Pi / 180
+	y := yaw * math.Pi / 180
+
+	cp := math.Cos(p)
+	sp := math.Sin(p)
+	cy := math.Cos(y)
+	sy := math.Sin(y)
+
+	return r3.Vector{
+		X: cp * cy,
+		Y: cp * sy,
+		Z: -sp,
+	}.Normalize()
+}
+
+func (p *Player) IsLookingAtEnemy() bool {
+	const minDistanceSq = 32 * 32
+
+	viewOrigin := p.PositionEyes()
+	viewAngles := p.ViewDirection()
+	viewDir := angleToForward(float64(viewAngles.X), float64(viewAngles.Y))
+
+	for _, enemy := range p.TeamState.Opponent.Members() {
+		if !enemy.Alive {
+			continue
+		}
+
+		segStart := enemy.Position()
+		segEnd := enemy.PositionEyes()
+
+		distanceSq := distanceSqToViewRaySegment(viewOrigin, viewDir, segStart, segEnd)
+		if distanceSq < minDistanceSq {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (p *Player) ViewRayDistanceTo(target *Player) float64 {
+	viewOrigin := p.PositionEyes()
+	viewAngles := p.ViewDirection()
+	viewDir := angleToForward(float64(viewAngles.X), float64(viewAngles.Y))
+
+	segStart := target.Position()
+	segEnd := target.PositionEyes()
+
+	distanceSq := distanceSqToViewRaySegment(viewOrigin, viewDir, segStart, segEnd)
+	return math.Sqrt(distanceSq)
+}
+
 // Position returns the in-game coordinates.
 // Note: the Z value is not on the player's eye height but instead at his feet.
 // See also PositionEyes().
@@ -653,43 +746,44 @@ func (p *Player) Position() r3.Vector {
 	return r3.Vector{}
 }
 
-func (p *Player) VelocityXY() float64 {
+func (p *Player) PositionEyes() r3.Vector {
+	if pawnEntity := p.PlayerPawnEntity(); pawnEntity != nil {
+		pos := pawnEntity.Position()
+		if p.IsDucking() {
+			pos.Z += 63.839996
+		} else {
+			pos.Z += 47.839996
+		}
+		return pos
+	}
+
+	return r3.Vector{}
+}
+
+func (p *Player) Velocity() r3.Vector {
 	posNew := p.PrevPosition[0]
 	posOld := p.PrevPosition[1]
 
 	if posNew == nil || posOld == nil {
-		return 0
+		return r3.Vector{}
 	}
 
 	deltaTicks := posNew.Tick - posOld.Tick
 	if deltaTicks <= 0 {
-		return 0
+		return r3.Vector{}
 	}
 
 	dx := posNew.Position.X - posOld.Position.X
 	dy := posNew.Position.Y - posOld.Position.Y
-
-	distance := math.Hypot(dx, dy)
-	unitsPerTick := distance / float64(deltaTicks)
-	return unitsPerTick * 64.0
-}
-
-func (p *Player) VelocityZ() float64 {
-	posNew := p.PrevPosition[0]
-	posOld := p.PrevPosition[1]
-
-	if posNew == nil || posOld == nil {
-		return 0
-	}
-
-	deltaTicks := posNew.Tick - posOld.Tick
-	if deltaTicks <= 0 {
-		return 0
-	}
-
 	dz := posNew.Position.Z - posOld.Position.Z
-	unitsPerTick := math.Abs(dz) / float64(deltaTicks)
-	return unitsPerTick * 64.0
+
+	scale := 64.0 / float64(deltaTicks)
+
+	return r3.Vector{
+		X: dx * scale,
+		Y: dy * scale,
+		Z: dz * scale,
+	}
 }
 
 // see https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/public/const.h#L146-L188
