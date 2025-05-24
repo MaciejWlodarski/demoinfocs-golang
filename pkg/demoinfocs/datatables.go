@@ -51,8 +51,12 @@ func (p *parser) bindBomb() {
 			if val.BoolVal() {
 				planterHandle := bombEntity.PropertyValueMust("m_hOwnerEntity").Handle()
 				ctlHandle := p.gameState.entities[entityIDFromHandle(planterHandle)].PropertyValueMust("m_hController").Handle()
-				ctlID := p.gameState.entities[entityIDFromHandle(ctlHandle)].ID()
-				planter := p.gameState.playersByEntityID[ctlID]
+				ctl := p.gameState.entities[entityIDFromHandle(ctlHandle)]
+				if ctl == nil {
+					return
+				}
+				planter := p.gameState.playersByEntityID[ctl.ID()]
+
 				if !planter.IsPlanting {
 					planter.IsPlanting = true
 					p.gameState.currentPlanter = planter
