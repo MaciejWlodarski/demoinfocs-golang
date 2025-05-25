@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/geo/r3"
 	common "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/constants"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
@@ -105,6 +106,19 @@ func (gs *gameState) setPlayerLifeState(pl *common.Player, alive *bool) {
 	gs.setAlive(pl, *alive)
 }
 
+func UpdatePlayerPosition(pl *common.Player, pos r3.Vector, tick int) {
+	if pl.CurrPosition == nil || tick != pl.CurrPosition.Tick {
+		pl.PrevPosition = pl.CurrPosition
+
+		pl.CurrPosition = &common.Position{
+			Tick:     tick,
+			Position: pos,
+		}
+	} else {
+		pl.CurrPosition.Position = pos
+	}
+}
+
 func (gs *gameState) setAlive(pl *common.Player, alive bool) {
 	if pl.Alive == alive {
 		return
@@ -124,6 +138,8 @@ func (gs *gameState) setAlive(pl *common.Player, alive bool) {
 	gs.aliveByEntityID[pl.EntityID] = pl
 
 	if playerSpawn {
+		UpdatePlayerPosition(pl, pl.Position(), gs.ingameTick)
+
 		gs.demoInfo.parser.delayedEventHandlers = append(
 			gs.demoInfo.parser.delayedEventHandlers,
 			func() {

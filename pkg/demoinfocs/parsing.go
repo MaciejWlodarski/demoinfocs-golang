@@ -526,8 +526,6 @@ func (p *parser) handleFrameParsed(*frameParsedTokenType) {
 
 	p.currentFrame++
 	p.eventDispatcher.Dispatch(events.FrameDone{})
-
-	p.updatePlayersPreviousFramePosition()
 }
 
 // CS2 demos playback info are available in the CDemoFileInfo message that should be parsed at the end of the demo.

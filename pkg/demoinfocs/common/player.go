@@ -10,7 +10,7 @@ import (
 	st "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
 )
 
-type PrevPosition struct {
+type Position struct {
 	Tick     int
 	Position r3.Vector
 }
@@ -43,7 +43,8 @@ type Player struct {
 	Kills  int
 	Deaths int
 
-	PrevPosition [2]*PrevPosition
+	CurrPosition *Position
+	PrevPosition *Position
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {
@@ -706,6 +707,10 @@ func (p *Player) IsLookingAtEnemy() bool {
 	viewAngles := p.ViewDirection()
 	viewDir := angleToForward(float64(viewAngles.X), float64(viewAngles.Y))
 
+	if p.TeamState == nil {
+		return false
+	}
+
 	for _, enemy := range p.TeamState.Opponent.Members() {
 		if !enemy.Alive {
 			continue
@@ -761,23 +766,29 @@ func (p *Player) PositionEyes() r3.Vector {
 }
 
 func (p *Player) Velocity() r3.Vector {
-	posNew := p.PrevPosition[0]
-	posOld := p.PrevPosition[1]
+	posCurr := p.CurrPosition
+	posPrev := p.PrevPosition
 
-	if posNew == nil || posOld == nil {
+	if posCurr == nil || posPrev == nil {
 		return r3.Vector{}
 	}
 
-	deltaTicks := posNew.Tick - posOld.Tick
+	currentTick := p.demoInfoProvider.IngameTick()
+
+	if currentTick-posCurr.Tick > 1 {
+		return r3.Vector{}
+	}
+
+	deltaTicks := posCurr.Tick - posPrev.Tick
 	if deltaTicks <= 0 {
 		return r3.Vector{}
 	}
 
-	dx := posNew.Position.X - posOld.Position.X
-	dy := posNew.Position.Y - posOld.Position.Y
-	dz := posNew.Position.Z - posOld.Position.Z
+	dx := posCurr.Position.X - posPrev.Position.X
+	dy := posCurr.Position.Y - posPrev.Position.Y
+	dz := posCurr.Position.Z - posPrev.Position.Z
 
-	scale := 64.0 / float64(deltaTicks)
+	scale := 64.0
 
 	return r3.Vector{
 		X: dx * scale,
@@ -979,6 +990,10 @@ func NewPlayer(demoInfoProvider demoInfoProvider) *Player {
 		Names:            make([]string, 0),
 		Inventory:        make(map[int]*Equipment),
 		demoInfoProvider: demoInfoProvider,
+		CurrPosition: &Position{
+			Tick:     demoInfoProvider.IngameTick(),
+			Position: r3.Vector{},
+		},
 	}
 }
 

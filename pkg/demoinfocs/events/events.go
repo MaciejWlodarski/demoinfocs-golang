@@ -22,6 +22,16 @@ type PlayerSpawn struct {
 	Player *common.Player
 }
 
+type PlayerMove struct {
+	Player   *common.Player
+	Position r3.Vector
+}
+
+type PlayerViewAngleChange struct {
+	Player    *common.Player
+	ViewAngle r3.Vector
+}
+
 // POVRecordingPlayerDetected signals that a player started recording the demo locally.
 // If this event is dispatched, it means it's a client-side (POV) demo.
 type POVRecordingPlayerDetected struct {

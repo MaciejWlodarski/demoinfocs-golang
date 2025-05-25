@@ -555,6 +555,27 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		if pl == nil {
 			return
 		}
+
+		UpdatePlayerPosition(pl, pos, p.gameState.ingameTick)
+
+		p.eventDispatcher.Dispatch(events.PlayerMove{
+			Player:   pl,
+			Position: pos,
+		})
+	})
+
+	pawnEntity.Property("m_angEyeAngles").OnUpdate(func(pv st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil {
+			return
+		}
+
+		angle := pv.R3Vec()
+
+		p.eventDispatcher.Dispatch(events.PlayerViewAngleChange{
+			Player:    pl,
+			ViewAngle: angle,
+		})
 	})
 
 	pawnEntity.Property("m_pItemServices.m_bHasDefuser").OnUpdate(func(pv st.PropertyValue) {
