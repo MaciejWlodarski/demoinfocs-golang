@@ -752,17 +752,13 @@ func (p *Player) Position() r3.Vector {
 }
 
 func (p *Player) PositionEyes() r3.Vector {
-	if pawnEntity := p.PlayerPawnEntity(); pawnEntity != nil {
-		pos := pawnEntity.Position()
-		if p.IsDucking() {
-			pos.Z += 63.839996
-		} else {
-			pos.Z += 47.839996
-		}
-		return pos
+	pos := p.CurrPosition.Position
+	if p.IsDucking() {
+		pos.Z += 63.839996
+	} else {
+		pos.Z += 47.839996
 	}
-
-	return r3.Vector{}
+	return pos
 }
 
 func (p *Player) Velocity() r3.Vector {
