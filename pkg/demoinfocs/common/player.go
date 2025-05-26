@@ -754,9 +754,9 @@ func (p *Player) Position() r3.Vector {
 func (p *Player) PositionEyes() r3.Vector {
 	pos := p.CurrPosition.Position
 	if p.IsDucking() {
-		pos.Z += 63.839996
-	} else {
 		pos.Z += 47.839996
+	} else {
+		pos.Z += 63.839996
 	}
 	return pos
 }
