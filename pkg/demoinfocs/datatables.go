@@ -571,11 +571,21 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		}
 
 		angle := pv.R3Vec()
+		pl.ViewAngle = angle
 
 		p.eventDispatcher.Dispatch(events.PlayerViewAngleChange{
 			Player:    pl,
 			ViewAngle: angle,
 		})
+	})
+
+	pawnEntity.Property("m_fFlags").OnUpdate(func(pv st.PropertyValue) {
+		pl := getPlayerFromPawnEntity(pawnEntity)
+		if pl == nil {
+			return
+		}
+
+		pl.FlagState = pv.S2UInt64()
 	})
 
 	pawnEntity.Property("m_pItemServices.m_bHasDefuser").OnUpdate(func(pv st.PropertyValue) {

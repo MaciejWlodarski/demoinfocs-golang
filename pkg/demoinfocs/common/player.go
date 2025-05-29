@@ -45,6 +45,8 @@ type Player struct {
 
 	CurrPosition *Position
 	PrevPosition *Position
+	ViewAngle    r3.Vector
+	FlagState    uint64
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {
