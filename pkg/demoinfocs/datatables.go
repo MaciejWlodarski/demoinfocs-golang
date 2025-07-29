@@ -665,14 +665,6 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			Player: pl,
 			Weapon: wep,
 		})
-
-		if pl.IsReloading {
-			p.eventDispatcher.Dispatch(events.WeaponReloadEnd{
-				Player: pl,
-			})
-
-			pl.IsReloading = false
-		}
 	})
 
 	pawnEntity.Property("m_bIsDefusing").OnUpdate(func(val st.PropertyValue) {
@@ -1186,48 +1178,6 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		})
 	})
 
-	entity.Property("m_bInReload").OnUpdate(func(val st.PropertyValue) {
-		if val.Any == nil {
-			return
-		}
-
-		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		if owner != nil {
-			if val.BoolVal() {
-				p.eventDispatcher.Dispatch(events.WeaponReloadBegin{
-					Player: owner,
-				})
-
-				owner.IsReloading = true
-			} else if !val.BoolVal() && owner.IsReloading {
-				p.eventDispatcher.Dispatch(events.WeaponReloadEnd{
-					Player: owner,
-				})
-
-				owner.IsReloading = false
-			}
-		}
-	})
-
-	entity.Property("m_bReloadVisuallyComplete").OnUpdate(func(val st.PropertyValue) {
-		if val.Any == nil {
-			return
-		}
-
-		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		reload := val.BoolVal()
-		if !reload || owner == nil || !owner.IsReloading {
-			return
-		}
-
-		p.eventDispatcher.Dispatch(events.WeaponReloadEnd{
-			Player:  owner,
-			Success: true,
-		})
-
-		owner.IsReloading = false
-	})
-
 	if _, ok := entity.PropertyValue("m_bJumpThrow"); ok {
 		entity.Property("m_bJumpThrow").OnUpdate(func(val st.PropertyValue) {
 			if val.Any != nil && val.BoolVal() {
@@ -1241,21 +1191,23 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		})
 	}
 
-	entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
-		state := int(val.S2UInt32())
-		if equipment.State == state {
-			return
-		}
+	if _, ok := entity.PropertyValue("m_iState"); ok {
+		entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
+			state := int(val.S2UInt32())
+			if equipment.State == state {
+				return
+			}
 
-		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-		p.eventDispatcher.Dispatch(events.ItemStateUpdate{
-			State: state,
-			Owner: owner,
-			Item:  equipment,
+			owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
+			p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+				State: state,
+				Owner: owner,
+				Item:  equipment,
+			})
+
+			equipment.State = state
 		})
-
-		equipment.State = state
-	})
+	}
 
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
