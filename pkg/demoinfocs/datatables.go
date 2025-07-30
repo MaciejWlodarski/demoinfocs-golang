@@ -665,6 +665,28 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 			Player: pl,
 			Weapon: wep,
 		})
+
+		if wep != nil {
+			if pl.ActiveWep != nil && pl.ActiveWep.Type != common.EqUnknown && pl.ActiveWep.Owner == pl && pl.ActiveWep.State != -1 {
+				pl.ActiveWep.State = 1
+				p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+					State: 1,
+					Owner: pl,
+					Item:  pl.ActiveWep,
+				})
+			}
+
+			if wep.Type != common.EqUnknown {
+				wep.State = 2
+				p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+					State: 2,
+					Owner: pl,
+					Item:  wep,
+				})
+			}
+		}
+
+		pl.ActiveWep = wep
 	})
 
 	pawnEntity.Property("m_bIsDefusing").OnUpdate(func(val st.PropertyValue) {
@@ -1129,6 +1151,20 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		p.gameState.weapons[entityID] = equipment
 	} else {
 		equipment.Type = wepType
+
+		if equipment.Owner != nil {
+			state := 1
+			if equipment.Owner.ActiveWep == equipment {
+				state = 2
+			}
+
+			equipment.State = state
+			p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+				State: state,
+				Owner: equipment.Owner,
+				Item:  equipment,
+			})
+		}
 	}
 
 	equipment.Entity = entity
@@ -1160,7 +1196,23 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 				Owner: prevOwner,
 				Item:  equipment,
 			})
+
+			equipment.State = 0
+			p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+				State: 0,
+				Owner: prevOwner,
+				Item:  equipment,
+			})
 			return
+		}
+
+		if owner.ActiveWep != equipment {
+			equipment.State = 1
+			p.eventDispatcher.Dispatch(events.ItemStateUpdate{
+				State: 1,
+				Owner: owner,
+				Item:  equipment,
+			})
 		}
 
 		p.eventDispatcher.Dispatch(events.ItemNewOwner{
@@ -1191,26 +1243,9 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 		})
 	}
 
-	if _, ok := entity.PropertyValue("m_iState"); ok {
-		entity.Property("m_iState").OnUpdate(func(val st.PropertyValue) {
-			state := int(val.S2UInt32())
-			if equipment.State == state {
-				return
-			}
-
-			owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
-			p.eventDispatcher.Dispatch(events.ItemStateUpdate{
-				State: state,
-				Owner: owner,
-				Item:  equipment,
-			})
-
-			equipment.State = state
-		})
-	}
-
 	entity.OnDestroy(func() {
 		owner := p.GameState().Participants().FindByPawnHandle(entity.PropertyValueMust("m_hOwnerEntity").Handle())
+		equipment.State = -1
 		p.eventDispatcher.Dispatch(events.ItemStateUpdate{
 			State: -1,
 			Owner: owner,
@@ -1372,16 +1407,6 @@ func (p *parser) bindNewSmoke(entity st.Entity) {
 
 		}
 	})
-
-	// entity.Property("m_VoxelFrameData").OnUpdate(func(val st.PropertyValue) {
-	// 	for i := len(smk.VoxelFrameData); i < 10000; i++ {
-	// 		val := smk.Entity.Property("m_VoxelFrameData." + fmt.Sprintf("%04d", i)).Value()
-	// 		if val.Any == nil {
-	// 			break
-	// 		}
-	// 		smk.VoxelFrameData = append(smk.VoxelFrameData, uint8(val.S2UInt64()))
-	// 	}
-	// })
 }
 
 func (p *parser) smokeExpired(smk *common.Smoke) {
@@ -1451,12 +1476,6 @@ func (p *parser) bindGameRules() {
 			p.gameState.currentPlanter = nil
 			p.gameState.currentDefuser = nil
 			p.gameState.bomb.Reset()
-
-			// for id, wep := range p.gameState.weapons {
-			// 	if wep.Type != common.EqUnknown && wep.State == 0 && wep.OwnerHandle() == constants.InvalidEntityHandleSource2 {
-			// 		delete(p.gameState.weapons, id)
-			// 	}
-			// }
 
 			if p.disableMimicSource1GameEvents {
 				return

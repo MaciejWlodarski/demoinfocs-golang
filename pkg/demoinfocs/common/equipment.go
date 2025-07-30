@@ -581,6 +581,15 @@ func (e *Equipment) OwnerHandle() uint64 {
 	return 0
 }
 
+func (e *Equipment) PrevOwner() *Player {
+	val, ok := e.Entity.PropertyValue("m_hPrevOwner")
+	if !ok {
+		return nil
+	}
+
+	return e.demoInfoProvider.FindPlayerByPawnHandle(val.Handle())
+}
+
 type Skin struct {
 	ItemId  int32    `json:"item_id"`
 	PaintId *uint64  `json:"paint_id"`
