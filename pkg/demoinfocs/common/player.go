@@ -525,7 +525,7 @@ func (p *Player) IsControllingBot() bool {
 
 // ControlledPawn returns the player instance of the pawn that the player is controlling, if any.
 func (p *Player) ControlledPawn() *Player {
-	if p.Entity == nil || !p.IsControllingBot() {
+	if p == nil || p.Entity == nil || !p.IsControllingBot() {
 		return p
 	}
 
@@ -764,6 +764,10 @@ func (p *Player) PositionEyes() r3.Vector {
 }
 
 func (p *Player) Velocity() r3.Vector {
+	if p == nil {
+		return r3.Vector{}
+	}
+
 	posCurr := p.CurrPosition
 	posPrev := p.PrevPosition
 

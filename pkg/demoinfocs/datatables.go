@@ -386,6 +386,10 @@ func (p *parser) getOrCreatePlayer(entityID int, rp *common.PlayerInfo) (isNew b
 }
 
 func (p *parser) getOrCreatePlayerFromControllerEntity(controllerEntity st.Entity) *common.Player {
+	if controllerEntity == nil {
+		return nil
+	}
+
 	controllerEntityID := controllerEntity.ID()
 	p.gameState.playerControllerEntities[controllerEntityID] = controllerEntity
 
@@ -405,6 +409,9 @@ func (p *parser) getOrCreatePlayerFromControllerEntity(controllerEntity st.Entit
 
 func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 	pl := p.getOrCreatePlayerFromControllerEntity(controllerEntity)
+	if pl == nil {
+		return
+	}
 
 	controllerEntity.Property("m_hPawn").OnUpdate(func(val st.PropertyValue) {
 		p.gameState.setPlayerLifeState(pl, nil)
@@ -412,6 +419,9 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 
 	controllerEntity.Property("m_iConnected").OnUpdate(func(val st.PropertyValue) {
 		pl := p.getOrCreatePlayerFromControllerEntity(controllerEntity)
+		if pl == nil {
+			return
+		}
 		state := val.S2UInt32()
 		wasConnected := pl.IsConnected
 		pl.IsConnected = state == 0
@@ -544,6 +554,9 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		controllerEntity := p.gameState.playerControllerEntities[controllerEntityID]
 
 		pl := p.getOrCreatePlayerFromControllerEntity(controllerEntity)
+		if pl == nil {
+			return
+		}
 		p.gameState.setPlayerLifeState(pl, nil)
 
 		p.bindPlayerWeaponsS2(pawnEntity, pl)
