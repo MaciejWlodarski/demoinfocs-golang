@@ -70,4 +70,5 @@ type GameState interface {
 	// EntityByHandle returns the entity corresponding to the given handle.
 	// Returns nil if the handle is invalid.
 	EntityByHandle(handle uint64) st.Entity
+	GetRoundTime() int
 }

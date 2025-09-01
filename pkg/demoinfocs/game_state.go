@@ -69,6 +69,11 @@ type gameState struct {
 	wepsToRemove     map[int]*common.Equipment
 	defuseKits       map[int]*common.Equipment
 	lastFreezeEnd    int
+	roundTime        int
+}
+
+func (gs *gameState) GetRoundTime() int {
+	return gs.roundTime
 }
 
 type FlyingFlashbang struct {
