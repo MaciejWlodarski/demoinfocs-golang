@@ -1512,6 +1512,7 @@ func (p *parser) bindGameRules() {
 
 		entity.Property(grPrefix("m_iRoundTime")).OnUpdate(func(val st.PropertyValue) {
 			roundTime = val.Int()
+			p.gameState.roundTime = roundTime
 		})
 
 		entity.Property(grPrefix("m_bFreezePeriod")).OnUpdate(func(val st.PropertyValue) {
