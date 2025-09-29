@@ -518,10 +518,11 @@ func (p *Parser) OnPacketEntities(m *msgs2.CSVCMsg_PacketEntities) error {
 				}
 
 				// Clean up old entity as it hasn't been explicitly deleted
-				if oldEntity, exists := p.entities[index]; exists && oldEntity.active {
-					oldEntity.Destroy()
-					p.tuplesCache = append(p.tuplesCache, tuple{oldEntity, st.EntityOpDeleted})
-				}
+
+				// if oldEntity, exists := p.entities[index]; exists && oldEntity.active {
+				// 	oldEntity.Destroy()
+				// 	p.tuplesCache = append(p.tuplesCache, tuple{oldEntity, st.EntityOpDeleted})
+				// }
 
 				e = newEntity(index, serial, class)
 				p.entities[index] = e

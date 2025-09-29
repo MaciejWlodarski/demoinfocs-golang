@@ -1159,7 +1159,8 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	}
 
 	equipment, exists := p.gameState.weapons[entityID]
-	if !exists || (equipment != nil && equipment.Type != common.EqUnknown) {
+	// if !exists || (equipment != nil && equipment.Type != common.EqUnknown) {
+	if !exists {
 		equipment = common.NewEquipment(wepType, p.demoInfoProvider)
 		p.gameState.weapons[entityID] = equipment
 	} else {
