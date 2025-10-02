@@ -1159,10 +1159,37 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	}
 
 	equipment, exists := p.gameState.weapons[entityID]
-	// if !exists || (equipment != nil && equipment.Type != common.EqUnknown) {
-	if !exists {
+	isOldEq := equipment != nil && equipment.Type != common.EqUnknown
+	if !exists || isOldEq {
+		// We have to create a new equipment in 2 cases:
+		// - There is no weapon with this entity ID
+		// - There is a weapon with this entity ID and it is not unknown
+		//
+		// The second case can happen if old weapon entity is deleted in the same frame
+		// as a new weapon entity is created. We have to replace old obsolete weapon with a new one.
 		equipment = common.NewEquipment(wepType, p.demoInfoProvider)
 		p.gameState.weapons[entityID] = equipment
+
+		// As we might have replaced old equipment with a new one we have to
+		// check players' inventories and update equipment to the new one if anyone
+		// had entity ID of old/new equipment.
+		//
+		// This can happen if pawn's inventory property has been updated
+		// before the new entity was created.
+		//
+		// While this solution might look kinda hacky it is the simplest one
+		// that doesn't involve some heavy refactoring.
+		if isOldEq {
+		outer:
+			for _, pl := range p.gameState.playersByEntityID {
+				for invEntID := range pl.Inventory {
+					if invEntID == entityID {
+						pl.Inventory[invEntID] = equipment
+						break outer
+					}
+				}
+			}
+		}
 	} else {
 		equipment.Type = wepType
 
