@@ -1,6 +1,11 @@
 package com.github.markus_wa.demoinfocs_golang.s2;
 
+import "google/protobuf/descriptor.proto";
 import "s2/network_connection.proto";
+
+extend .google.protobuf.MessageOptions {
+	optional int32 maximum_size_bytes = 50000;
+}
 
 enum SignonState_t {
 	SIGNONSTATE_NONE = 0;
@@ -66,9 +71,9 @@ message CMsgQuaternion {
 }
 
 message CMsgTransform {
-	optional CMsgVector position = 1;
+	optional .CMsgVector position = 1;
 	optional float scale = 2;
-	optional CMsgQuaternion orientation = 3;
+	optional .CMsgQuaternion orientation = 3;
 }
 
 message CMsgRGBA {
@@ -97,7 +102,7 @@ message CMsg_CVars {
 		optional string value = 2;
 	}
 
-	repeated CMsg_CVars.CVar cvars = 1;
+	repeated .CMsg_CVars.CVar cvars = 1;
 }
 
 message CNETMsg_NOP {
@@ -126,11 +131,13 @@ message CNETMsg_StringCmd {
 }
 
 message CNETMsg_SetConVar {
-	optional CMsg_CVars convars = 1;
+	option (maximum_size_bytes) = 4096;
+
+	optional .CMsg_CVars convars = 1;
 }
 
 message CNETMsg_SignonState {
-	optional SignonState_t signon_state = 1 [default = SIGNONSTATE_NONE];
+	optional .SignonState_t signon_state = 1 [default = SIGNONSTATE_NONE];
 	optional uint32 spawn_count = 2;
 	optional uint32 num_server_players = 3;
 	repeated string players_networkids = 4;
@@ -152,26 +159,28 @@ message CSVCMsg_GameEvent {
 
 	optional string event_name = 1;
 	optional int32 eventid = 2;
-	repeated CSVCMsg_GameEvent.key_t keys = 3;
+	repeated .CSVCMsg_GameEvent.key_t keys = 3;
 }
 
 message CSVCMsgList_GameEvents {
 	message event_t {
 		optional int32 tick = 1;
-		optional CSVCMsg_GameEvent event = 2;
+		optional .CSVCMsg_GameEvent event = 2;
 	}
 
-	repeated CSVCMsgList_GameEvents.event_t events = 1;
+	repeated .CSVCMsgList_GameEvents.event_t events = 1;
 }
 
 message CNETMsg_SpawnGroup_Load {
+	option (maximum_size_bytes) = 131072;
+
 	optional string worldname = 1;
 	optional string entitylumpname = 2;
 	optional string entityfiltername = 3;
 	optional uint32 spawngrouphandle = 4;
 	optional uint32 spawngroupownerhandle = 5;
-	optional CMsgVector world_offset_pos = 6;
-	optional CMsgQAngle world_offset_angle = 7;
+	optional .CMsgVector world_offset_pos = 6;
+	optional .CMsgQAngle world_offset_angle = 7;
 	optional bytes spawngroupmanifest = 8;
 	optional uint32 flags = 9;
 	optional int32 tickcount = 10;
@@ -233,8 +242,8 @@ message CSVCMsg_GameSessionConfiguration {
 
 message CNETMsg_DebugOverlay {
 	optional int32 etype = 1;
-	repeated CMsgVector vectors = 2;
-	repeated CMsgRGBA colors = 3;
+	repeated .CMsgVector vectors = 2;
+	repeated .CMsgRGBA colors = 3;
 	repeated float dimensions = 4;
 	repeated float times = 5;
 	repeated bool bools = 6;

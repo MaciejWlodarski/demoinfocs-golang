@@ -7,11 +7,12 @@
 package msg
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	_ "google.golang.org/protobuf/types/descriptorpb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -20,83 +21,6 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
-
-type NET_Messages int32
-
-const (
-	NET_Messages_net_NOP              NET_Messages = 0
-	NET_Messages_net_Disconnect       NET_Messages = 1
-	NET_Messages_net_File             NET_Messages = 2
-	NET_Messages_net_SplitScreenUser  NET_Messages = 3
-	NET_Messages_net_Tick             NET_Messages = 4
-	NET_Messages_net_StringCmd        NET_Messages = 5
-	NET_Messages_net_SetConVar        NET_Messages = 6
-	NET_Messages_net_SignonState      NET_Messages = 7
-	NET_Messages_net_PlayerAvatarData NET_Messages = 100
-)
-
-// Enum value maps for NET_Messages.
-var (
-	NET_Messages_name = map[int32]string{
-		0:   "net_NOP",
-		1:   "net_Disconnect",
-		2:   "net_File",
-		3:   "net_SplitScreenUser",
-		4:   "net_Tick",
-		5:   "net_StringCmd",
-		6:   "net_SetConVar",
-		7:   "net_SignonState",
-		100: "net_PlayerAvatarData",
-	}
-	NET_Messages_value = map[string]int32{
-		"net_NOP":              0,
-		"net_Disconnect":       1,
-		"net_File":             2,
-		"net_SplitScreenUser":  3,
-		"net_Tick":             4,
-		"net_StringCmd":        5,
-		"net_SetConVar":        6,
-		"net_SignonState":      7,
-		"net_PlayerAvatarData": 100,
-	}
-)
-
-func (x NET_Messages) Enum() *NET_Messages {
-	p := new(NET_Messages)
-	*p = x
-	return p
-}
-
-func (x NET_Messages) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (NET_Messages) Descriptor() protoreflect.EnumDescriptor {
-	return file_netmessages_proto_enumTypes[0].Descriptor()
-}
-
-func (NET_Messages) Type() protoreflect.EnumType {
-	return &file_netmessages_proto_enumTypes[0]
-}
-
-func (x NET_Messages) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Do not use.
-func (x *NET_Messages) UnmarshalJSON(b []byte) error {
-	num, err := protoimpl.X.UnmarshalJSONEnum(x.Descriptor(), b)
-	if err != nil {
-		return err
-	}
-	*x = NET_Messages(num)
-	return nil
-}
-
-// Deprecated: Use NET_Messages.Descriptor instead.
-func (NET_Messages) EnumDescriptor() ([]byte, []int) {
-	return file_netmessages_proto_rawDescGZIP(), []int{0}
-}
 
 type CLC_Messages int32
 
@@ -5365,7 +5289,6 @@ func file_netmessages_proto_rawDescGZIP() []byte {
 var file_netmessages_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_netmessages_proto_msgTypes = make([]protoimpl.MessageInfo, 61)
 var file_netmessages_proto_goTypes = []interface{}{
-	(NET_Messages)(0),                        // 0: NET_Messages
 	(CLC_Messages)(0),                        // 1: CLC_Messages
 	(VoiceDataFormatT)(0),                    // 2: VoiceDataFormat_t
 	(ESplitScreenMessageType)(0),             // 3: ESplitScreenMessageType

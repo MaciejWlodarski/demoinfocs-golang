@@ -389,12 +389,12 @@ func NewParserWithConfig(demostream io.Reader, config ParserConfig) Parser {
 	// Attach proto msg handlers
 	p.msgDispatcher.RegisterHandler(p.handleGameEventList)
 	p.msgDispatcher.RegisterHandler(p.handleGameEvent)
-	p.msgDispatcher.RegisterHandler(p.handleCreateStringTableS1)
-	p.msgDispatcher.RegisterHandler(p.handleUpdateStringTableS1)
+	// p.msgDispatcher.RegisterHandler(p.handleCreateStringTableS1)
+	// p.msgDispatcher.RegisterHandler(p.handleUpdateStringTableS1)
 	p.msgDispatcher.RegisterHandler(p.handleUserMessage)
 	p.msgDispatcher.RegisterHandler(p.handleSetConVar)
 	p.msgDispatcher.RegisterHandler(p.handleServerInfo)
-	p.msgDispatcher.RegisterHandler(p.handleEncryptedData)
+	// p.msgDispatcher.RegisterHandler(p.handleEncryptedData)
 	p.msgDispatcher.RegisterHandler(p.gameState.handleIngameTickNumber)
 
 	// Source 2

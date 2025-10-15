@@ -725,11 +725,11 @@ type StringTableCreated struct {
 type WarnType int
 
 const (
-	WarnTypeUndefined                  = iota
-	WarnTypeBombsiteUnknown            // may occur on de_grind for bombsite B as the bounding box of the bombsite is wrong
-	WarnTypeTeamSwapPlayerNil          // TODO: figure out why this happens
-	WarnTypeGameEventBeforeDescriptors // may occur in POV demos
-	WarnUnknownDemoCommandMessageType  // occur when we have an unknown EDemoCommands message type, the protobuf messages probably need to be updated
+	WarnTypeUndefined                     = iota
+	WarnTypeBombsiteUnknown               // may occur on de_grind for bombsite B as the bounding box of the bombsite is wrong
+	WarnTypeTeamSwapPlayerNil             // TODO: figure out why this happens
+	WarnTypeGameEventBeforeDescriptors    // may occur in POV demos
+	WarnTypeUnknownDemoCommandMessageType // occur when we have an unknown EDemoCommands message type, the protobuf messages probably need to be updated
 
 	// WarnTypeMissingNetMessageDecryptionKey occurs when encrypted net-messages are encountered and the decryption key is missing.
 	// See ParserConfig.NetMessageDecryptionKey
@@ -744,6 +744,7 @@ const (
 	WarnTypeMissingItemDefinitionIndex
 	WarnTypeStringTableParsingFailure // Should happen only with CS2 POV demos
 	WarnTypePacketEntitiesPanic
+	WarnTypeUnknownProtobufMessage
 )
 
 // ParserWarn signals that a non-fatal problem occurred during parsing.

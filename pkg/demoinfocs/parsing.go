@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/golang/snappy"
-	"github.com/markus-wa/go-unassert"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -16,7 +15,6 @@ import (
 
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
-	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msg"
 )
 
 const (
@@ -223,75 +221,6 @@ const (
 	dcStringTables   demoCommand = 9
 )
 
-//nolint:funlen,cyclop
-func (p *parser) parseFrameS1() bool {
-	cmd := demoCommand(p.bitReader.ReadSingleByte())
-
-	// Send ingame tick number update
-	p.msgQueue <- ingameTickNumber(p.bitReader.ReadSignedInt(32))
-
-	// Skip 'player slot'
-	const nSlotBits = 8
-	p.bitReader.Skip(nSlotBits) //nolint:wsl
-
-	debugDemoCommand(cmd)
-
-	switch cmd {
-	case dcSynctick:
-		// Ignore
-
-	case dcStop:
-		return false
-
-	case dcConsoleCommand:
-		// Skip
-		p.bitReader.Skip(p.bitReader.ReadSignedInt(32) << 3)
-
-	case dcDataTables:
-		p.msgDispatcher.SyncAllQueues()
-
-		b := p.bitReader.ReadBytes(p.bitReader.ReadSignedInt(32))
-
-		err := p.stParser.ParsePacket(b)
-		if err != nil {
-			panic(err)
-		}
-
-		debugAllServerClasses(p.ServerClasses())
-
-		p.bindEntities()
-
-		p.eventDispatcher.Dispatch(events.DataTablesParsed{})
-
-	case dcStringTables:
-		p.msgDispatcher.SyncAllQueues()
-
-		p.parseStringTables()
-
-	case dcUserCommand:
-		// Skip
-		p.bitReader.Skip(32)
-		p.bitReader.Skip(p.bitReader.ReadSignedInt(32) << 3)
-
-	case dcSignon:
-		fallthrough
-	case dcPacket:
-		p.parsePacket()
-
-	case dcCustomData:
-		// Might as well panic since we'll be way off if we dont skip the whole thing
-		panic("Found CustomData but not handled")
-
-	default:
-		panic(fmt.Sprintf("I haven't programmed that pathway yet (command %v unknown)", cmd))
-	}
-
-	// Queue up some post processing
-	p.msgQueue <- frameParsedToken
-
-	return true
-}
-
 var demoCommandMsgsCreators = map[msgs2.EDemoCommands]NetMessageCreator{
 	msgs2.EDemoCommands_DEM_Stop:            func() proto.Message { return &msgs2.CDemoStop{} },
 	msgs2.EDemoCommands_DEM_FileHeader:      func() proto.Message { return &msgs2.CDemoFileHeader{} },
@@ -334,7 +263,7 @@ func (p *parser) parseFrameS2() bool {
 	if msgCreator == nil {
 		p.eventDispatcher.Dispatch(events.ParserWarn{
 			Message: fmt.Sprintf("skipping unknown demo commands message type with value %d", msgType),
-			Type:    events.WarnUnknownDemoCommandMessageType,
+			Type:    events.WarnTypeUnknownDemoCommandMessageType,
 		})
 		p.bitReader.Skip(int(size) << 3)
 
@@ -392,8 +321,6 @@ func (p *parser) parseFrameS2() bool {
 // FIXME: refactor to interface instead of switch
 func (p *parser) parseFrameFn() func() bool {
 	switch p.header.Filestamp {
-	case "HL2DEMO":
-		return p.parseFrameS1
 
 	case "PBDEMS2":
 		return p.parseFrameS2
@@ -409,102 +336,6 @@ var byteSlicePool = sync.Pool{
 
 		return &s
 	},
-}
-
-var defaultNetMessageCreators = map[int]NetMessageCreator{
-	// We could pool CSVCMsg_PacketEntities as they take up A LOT of the allocations
-	// but unless we're on a system that's doing a lot of concurrent parsing there isn't really a point
-	// as handling packets is a lot slower than creating them and we can't pool until they are handled.
-	int(msg.SVC_Messages_svc_PacketEntities):    func() proto.Message { return new(msg.CSVCMsg_PacketEntities) },
-	int(msg.SVC_Messages_svc_GameEventList):     func() proto.Message { return new(msg.CSVCMsg_GameEventList) },
-	int(msg.SVC_Messages_svc_GameEvent):         func() proto.Message { return new(msg.CSVCMsg_GameEvent) },
-	int(msg.SVC_Messages_svc_CreateStringTable): func() proto.Message { return new(msg.CSVCMsg_CreateStringTable) },
-	int(msg.SVC_Messages_svc_UpdateStringTable): func() proto.Message { return new(msg.CSVCMsg_UpdateStringTable) },
-	int(msg.SVC_Messages_svc_UserMessage):       func() proto.Message { return new(msg.CSVCMsg_UserMessage) },
-	int(msg.SVC_Messages_svc_ServerInfo):        func() proto.Message { return new(msg.CSVCMsg_ServerInfo) },
-	int(msg.NET_Messages_net_SetConVar):         func() proto.Message { return new(msg.CNETMsg_SetConVar) },
-	int(msg.SVC_Messages_svc_EncryptedData):     func() proto.Message { return new(msg.CSVCMsg_EncryptedData) },
-}
-
-func (p *parser) netMessageForCmd(cmd int) proto.Message {
-	msgCreator := defaultNetMessageCreators[cmd]
-
-	if msgCreator != nil {
-		return msgCreator()
-	}
-
-	var msgName string
-	if cmd < 8 || cmd >= 100 {
-		msgName = msg.NET_Messages_name[int32(cmd)]
-	} else {
-		msgName = msg.SVC_Messages_name[int32(cmd)]
-	}
-
-	if msgName == "" {
-		// Send a warning if the command is unknown
-		// This might mean our proto files are out of date
-		p.eventDispatcher.Dispatch(events.ParserWarn{Message: fmt.Sprintf("unknown message command %q", cmd)})
-		unassert.Error("unknown message command %q", cmd)
-	}
-
-	// Handle additional net-messages as defined by the user
-	msgCreator = p.additionalNetMessageCreators[cmd]
-	if msgCreator != nil {
-		return msgCreator()
-	}
-
-	debugUnhandledMessage(cmd, msgName)
-
-	return nil
-}
-
-func (p *parser) parsePacket() {
-	// Booooring
-	// 152 bytes CommandInfo, 4 bytes SeqNrIn, 4 bytes SeqNrOut
-	// See at the bottom of the file what the CommandInfo would contain if you are interested.
-	const nCommandInfoBits = (152 + 4 + 4) << 3
-	p.bitReader.Skip(nCommandInfoBits) //nolint:wsl
-
-	// Here we go
-	p.bitReader.BeginChunk(p.bitReader.ReadSignedInt(32) << 3)
-
-	for !p.bitReader.ChunkFinished() {
-		cmd := int(p.bitReader.ReadVarInt32())
-		size := int(p.bitReader.ReadVarInt32())
-
-		p.bitReader.BeginChunk(size << 3)
-
-		m := p.netMessageForCmd(cmd)
-
-		if m == nil {
-			// On to the next one
-			p.bitReader.EndChunk()
-
-			continue
-		}
-
-		b := byteSlicePool.Get().(*[]byte)
-
-		p.bitReader.ReadBytesInto(b, size)
-
-		err := proto.Unmarshal(*b, m)
-		if err != nil {
-			// TODO: Don't crash here, happens with demos that work in gotv
-			p.setError(errors.Wrapf(err, "failed to unmarshal cmd %d", cmd))
-
-			return
-		}
-
-		p.msgQueue <- m
-
-		// Reset length to 0 and pool
-		*b = (*b)[:0]
-		byteSlicePool.Put(b)
-
-		p.bitReader.EndChunk()
-	}
-
-	p.bitReader.EndChunk()
 }
 
 type frameParsedTokenType struct{}
