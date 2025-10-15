@@ -6,7 +6,6 @@ import (
 	"github.com/markus-wa/go-unassert"
 
 	events "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
-	msg "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msg"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
 )
@@ -24,7 +23,7 @@ func (p *parser) onEntity(e sendtables.Entity, op sendtables.EntityOp) error {
 	return nil
 }
 
-func (p *parser) handleSetConVar(setConVar *msg.CNETMsg_SetConVar) {
+func (p *parser) handleSetConVar(setConVar *msgs2.CNETMsg_SetConVar) {
 	updated := make(map[string]string)
 	for _, cvar := range setConVar.Convars.Cvars {
 		updated[cvar.GetName()] = cvar.GetValue()
@@ -48,7 +47,7 @@ func (p *parser) handleSetConVarS2(setConVar *msgs2.CNETMsg_SetConVar) {
 	})
 }
 
-func (p *parser) handleServerInfo(srvInfo *msg.CSVCMsg_ServerInfo) {
+func (p *parser) handleServerInfo(srvInfo *msgs2.CSVCMsg_ServerInfo) {
 	// srvInfo.MapCrc might be interesting as well
 	p.tickInterval = srvInfo.GetTickInterval()
 

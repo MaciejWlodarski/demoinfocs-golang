@@ -206,21 +206,6 @@ func (p *parser) ParseNextFrame() (moreFrames bool, err error) {
 	return moreFrames, p.error()
 }
 
-// Demo commands as documented at https://developer.valvesoftware.com/wiki/DEM_Format
-type demoCommand byte
-
-const (
-	dcSignon         demoCommand = 1
-	dcPacket         demoCommand = 2
-	dcSynctick       demoCommand = 3
-	dcConsoleCommand demoCommand = 4
-	dcUserCommand    demoCommand = 5
-	dcDataTables     demoCommand = 6
-	dcStop           demoCommand = 7
-	dcCustomData     demoCommand = 8
-	dcStringTables   demoCommand = 9
-)
-
 var demoCommandMsgsCreators = map[msgs2.EDemoCommands]NetMessageCreator{
 	msgs2.EDemoCommands_DEM_Stop:            func() proto.Message { return &msgs2.CDemoStop{} },
 	msgs2.EDemoCommands_DEM_FileHeader:      func() proto.Message { return &msgs2.CDemoFileHeader{} },
