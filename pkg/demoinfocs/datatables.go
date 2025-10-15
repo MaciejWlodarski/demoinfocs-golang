@@ -759,7 +759,7 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 	for i := 13; i <= 17; i++ {
 		i := i
 
-		property := pawnEntity.Property(playerAmmoPrefix + fmt.Sprintf("%04d", i))
+		property := pawnEntity.Property(playerAmmoPrefix + fmt.Sprintf(".%04d", i))
 		property.OnUpdate(func(pv st.PropertyValue) {
 			pl := getPlayerFromPawnEntity(pawnEntity)
 			if pl == nil {
@@ -847,7 +847,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 		inventory := make(map[int]*common.Equipment, inventorySize)
 
 		for i := 0; i < inventorySize; i++ {
-			val := pawnEntity.Property(playerWeaponPrefixS2 + fmt.Sprintf("%04d", i)).Value()
+			val := pawnEntity.Property(playerWeaponPrefixS2 + fmt.Sprintf(".%04d", i)).Value()
 			if val.Any == nil {
 				continue
 			}
@@ -859,7 +859,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 		pl.Inventory = inventory
 	}
 
-	pawnEntity.Property("m_pWeaponServices.m_hMyWeapons").OnUpdate(func(pv st.PropertyValue) {
+	pawnEntity.Property(playerWeaponPrefixS2).OnUpdate(func(pv st.PropertyValue) {
 		inventorySize = len(pv.S2Array())
 		setPlayerInventory()
 	})
@@ -896,7 +896,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 			}
 		}
 
-		property := pawnEntity.Property(playerWeaponPrefixS2 + fmt.Sprintf("%04d", i))
+		property := pawnEntity.Property(playerWeaponPrefixS2 + fmt.Sprintf(".%04d", i))
 		updateWeapon(property.Value())
 		property.OnUpdate(updateWeapon)
 	}
@@ -1363,7 +1363,7 @@ func (p *parser) bindNewInferno(entity st.Entity) {
 	})
 
 	for i := range 16 {
-		entity.Property("m_bFireIsBurning." + fmt.Sprintf("%04d", i)).OnUpdate(func(pv st.PropertyValue) {
+		entity.Property("m_bFireIsBurning" + fmt.Sprintf(".%04d", i)).OnUpdate(func(pv st.PropertyValue) {
 			index := i
 			isBurning := pv.BoolVal()
 			fire := inf.Fires[index]
@@ -1373,7 +1373,7 @@ func (p *parser) bindNewInferno(entity st.Entity) {
 					return
 				}
 
-				pos := entity.Property("m_firePositions." + fmt.Sprintf("%04d", index)).Value().R3Vec()
+				pos := entity.Property("m_firePositions" + fmt.Sprintf(".%04d", index)).Value().R3Vec()
 				fire = common.NewFire(pos)
 				inf.Fires[index] = fire
 			}

@@ -11,7 +11,7 @@ import (
 	"github.com/golang/geo/r3"
 
 	common "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
-	msg "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msg"
+	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 )
 
 // FrameDone signals that a demo-frame has been processed.
@@ -725,11 +725,11 @@ type StringTableCreated struct {
 type WarnType int
 
 const (
-	WarnTypeUndefined                  = iota
-	WarnTypeBombsiteUnknown            // may occur on de_grind for bombsite B as the bounding box of the bombsite is wrong
-	WarnTypeTeamSwapPlayerNil          // TODO: figure out why this happens
-	WarnTypeGameEventBeforeDescriptors // may occur in POV demos
-	WarnUnknownDemoCommandMessageType  // occur when we have an unknown EDemoCommands message type, the protobuf messages probably need to be updated
+	WarnTypeUndefined                     = iota
+	WarnTypeBombsiteUnknown               // may occur on de_grind for bombsite B as the bounding box of the bombsite is wrong
+	WarnTypeTeamSwapPlayerNil             // TODO: figure out why this happens
+	WarnTypeGameEventBeforeDescriptors    // may occur in POV demos
+	WarnTypeUnknownDemoCommandMessageType // occur when we have an unknown EDemoCommands message type, the protobuf messages probably need to be updated
 
 	// WarnTypeMissingNetMessageDecryptionKey occurs when encrypted net-messages are encountered and the decryption key is missing.
 	// See ParserConfig.NetMessageDecryptionKey
@@ -744,6 +744,7 @@ const (
 	WarnTypeMissingItemDefinitionIndex
 	WarnTypeStringTableParsingFailure // Should happen only with CS2 POV demos
 	WarnTypePacketEntitiesPanic
+	WarnTypeUnknownProtobufMessage
 )
 
 // ParserWarn signals that a non-fatal problem occurred during parsing.
@@ -756,7 +757,7 @@ type ParserWarn struct {
 // It contains the raw data as received from the net-message.
 type GenericGameEvent struct {
 	Name string
-	Data map[string]*msg.CSVCMsg_GameEventKeyT
+	Data map[string]*msgs2.CSVCMsg_GameEventKeyT
 }
 
 // InfernoStart signals that the fire of a incendiary or Molotov is starting.
@@ -834,11 +835,6 @@ type PlayerSpottersChanged struct {
 // See GameState.ConVars().
 type ConVarsUpdated struct {
 	UpdatedConVars map[string]string
-}
-
-// RoundImpactScoreData contains impact assessments of events that happened during the last round.
-type RoundImpactScoreData struct {
-	RawMessage *msg.CCSUsrMsg_RoundImpactScoreData
 }
 
 // PlayerInfo signals that basic player information was read via stringtables.

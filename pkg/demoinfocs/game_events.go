@@ -11,8 +11,7 @@ import (
 
 	common "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
 	events "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
-	msg "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msg"
-	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
+	msg "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 )
 
 func (p *parser) handleGameEventList(gel *msg.CSVCMsg_GameEventList) {
@@ -22,7 +21,7 @@ func (p *parser) handleGameEventList(gel *msg.CSVCMsg_GameEventList) {
 	}
 }
 
-func (p *parser) handleGameEventListS2(gel *msgs2.CMsgSource1LegacyGameEventList) {
+func (p *parser) handleGameEventListS2(gel *msg.CMsgSource1LegacyGameEventList) {
 	s1desc := make([]*msg.CSVCMsg_GameEventListDescriptorT, 0, len(gel.GetDescriptors()))
 
 	for _, d := range gel.GetDescriptors() {
@@ -80,14 +79,14 @@ func (p *parser) handleGameEvent(ge *msg.CSVCMsg_GameEvent) {
 	})
 }
 
-func (p *parser) handleGameEventS2(ge *msgs2.CMsgSource1LegacyGameEvent) {
+func (p *parser) handleGameEventS2(ge *msg.CMsgSource1LegacyGameEvent) {
 	if p.gameEventDescs == nil {
 		p.eventDispatcher.Dispatch(events.ParserWarn{
 			Message: "received GameEvent but event descriptors are missing",
 			Type:    events.WarnTypeGameEventBeforeDescriptors,
 		})
 
-		list := new(msgs2.CMsgSource1LegacyGameEventList)
+		list := new(msg.CMsgSource1LegacyGameEventList)
 
 		err := proto.Unmarshal(p.source2FallbackGameEventListBin, list)
 		if err != nil {
@@ -115,10 +114,9 @@ func (p *parser) handleGameEventS2(ge *msgs2.CMsgSource1LegacyGameEvent) {
 	}
 
 	p.handleGameEvent(&msg.CSVCMsg_GameEvent{
-		EventName:   ge.EventName,
-		Eventid:     ge.Eventid,
-		Keys:        keys,
-		Passthrough: ge.Passthrough,
+		EventName: ge.EventName,
+		Eventid:   ge.Eventid,
+		Keys:      keys,
 	})
 }
 

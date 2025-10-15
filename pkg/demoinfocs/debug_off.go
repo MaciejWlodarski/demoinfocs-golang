@@ -1,11 +1,12 @@
-//+build !debugdemoinfocs
+//go:build !debugdemoinfocs
+// +build !debugdemoinfocs
 
 // This file is just a bunch of NOPs for the release build, see debug_on.go for debugging stuff
 
 package demoinfocs
 
 import (
-	msg "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msg"
+	msg "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 	st "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
 )
 
@@ -13,15 +14,7 @@ func debugGameEvent(descriptor *msg.CSVCMsg_GameEventListDescriptorT, ge *msg.CS
 	// NOP
 }
 
-func debugUnhandledMessage(cmd int, name string) {
-	// NOP
-}
-
 func debugIngameTick(tickNr int) {
-	// NOP
-}
-
-func debugDemoCommand(cmd demoCommand) {
 	// NOP
 }
 

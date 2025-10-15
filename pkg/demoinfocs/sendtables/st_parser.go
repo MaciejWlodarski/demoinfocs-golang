@@ -1,16 +1,11 @@
 package sendtables
 
 import (
-	"bytes"
-	"fmt"
 	"math"
 	"sort"
 
-	"google.golang.org/protobuf/proto"
-
 	bit "github.com/markus-wa/demoinfocs-golang/v4/internal/bitread"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/constants"
-	msg "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msg"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 )
 
@@ -136,90 +131,6 @@ type excludeEntry struct {
 // Intended for internal use only.
 func (p *SendTableParser) ServerClasses() ServerClasses {
 	return p.serverClasses
-}
-
-// ParsePacket parses a send-table packet.
-//
-// Intended for internal use only.
-func (p *SendTableParser) ParsePacket(b []byte) error {
-	r := bit.NewSmallBitReader(bytes.NewReader(b))
-
-	for {
-		t := msg.SVC_Messages(r.ReadVarInt32())
-		if t != msg.SVC_Messages_svc_SendTable {
-			panic(fmt.Sprintf("Expected SendTable (%s), got %q", msg.SVC_Messages_svc_SendTable, t))
-		}
-
-		st := parseSendTable(r)
-		if st.isEnd {
-			break
-		}
-
-		p.sendTables = append(p.sendTables, st)
-	}
-
-	serverClassCount := int(r.ReadInt(16))
-
-	for i := 0; i < serverClassCount; i++ {
-		class := new(serverClass)
-		class.id = int(r.ReadInt(16))
-
-		if class.id > serverClassCount {
-			panic("Invalid class index")
-		}
-
-		class.name = r.ReadString()
-		class.dataTableName = r.ReadString()
-
-		for j, v := range p.sendTables {
-			if v.name == class.dataTableName {
-				class.dataTableID = j
-			}
-		}
-
-		class.instanceBaseline = p.instanceBaselines[i]
-
-		p.serverClasses = append(p.serverClasses, class)
-	}
-
-	for i := 0; i < serverClassCount; i++ {
-		p.flattenDataTable(i)
-	}
-
-	return nil
-}
-
-func parseSendTable(r *bit.BitReader) sendTable {
-	var st msg.CSVCMsg_SendTable
-
-	size := int(r.ReadVarInt32())
-
-	err := proto.Unmarshal(r.ReadBytes(size), &st)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to unmarshal SendTable: %s", err.Error()))
-	}
-
-	var res sendTable
-
-	for _, v := range st.GetProps() {
-		var prop sendTableProperty
-		prop.dataTableName = v.GetDtName()
-		prop.highValue = v.GetHighValue()
-		prop.lowValue = v.GetLowValue()
-		prop.name = v.GetVarName()
-		prop.numberOfBits = int(v.GetNumBits())
-		prop.numberOfElements = int(v.GetNumElements())
-		prop.priority = int(v.GetPriority())
-		prop.flags = sendPropertyFlags(v.GetFlags())
-		prop.rawType = int(v.GetType())
-
-		res.properties = append(res.properties, prop)
-	}
-
-	res.name = st.GetNetTableName()
-	res.isEnd = st.GetIsEnd()
-
-	return res
 }
 
 func (p *SendTableParser) flattenDataTable(serverClassIndex int) {
