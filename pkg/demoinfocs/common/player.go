@@ -19,25 +19,26 @@ type Position struct {
 type Player struct {
 	demoInfoProvider demoInfoProvider // provider for demo info such as tick-rate or current tick
 
-	SteamID64         uint64 // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
-	UserID            int    // Mostly used in game-events to address this player
-	Name              string // Steam / in-game user name
-	Names             []string
-	Inventory         map[int]*Equipment // All weapons / equipment the player is currently carrying. See also Weapons().
-	EntityID          int                // Usually the same as Entity.ID() but may be different between player death and re-spawn.
-	Entity            st.Entity          // May be nil between player-death and re-spawn
-	FlashDuration     float32            // Blindness duration from the flashbang currently affecting the player (seconds)
-	FlashTick         int                // In-game tick at which the player was last flashed
-	TeamState         *TeamState         // When keeping the reference make sure you notice when the player changes teams
-	Team              Team               // Team identifier for the player (e.g. TeamTerrorists or TeamCounterTerrorists).
-	IsBot             bool               // True if this is a bot-entity. See also IsControllingBot and ControlledBot().
-	IsConnected       bool
-	IsDefusing        bool
-	IsPlanting        bool
-	IsUnknown         bool // Used to identify unknown/broken players. see https://github.com/markus-wa/demoinfocs-golang/issues/162
-	Alive             bool // True if player is alive
-	LastThrownGrenade *Equipment
-	GrenadesAmmo      [5]int
+	SteamID64           uint64 // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
+	UserID              int    // Mostly used in game-events to address this player
+	Name                string // Steam / in-game user name
+	Names               []string
+	Inventory           map[int]*Equipment // All weapons / equipment the player is currently carrying. See also Weapons().
+	EntityID            int                // Usually the same as Entity.ID() but may be different between player death and re-spawn.
+	Entity              st.Entity          // May be nil between player-death and re-spawn
+	FlashDuration       float32            // Blindness duration from the flashbang currently affecting the player (seconds)
+	FlashTick           int                // In-game tick at which the player was last flashed
+	TeamState           *TeamState         // When keeping the reference make sure you notice when the player changes teams
+	Team                Team               // Team identifier for the player (e.g. TeamTerrorists or TeamCounterTerrorists).
+	IsBot               bool               // True if this is a bot-entity. See also IsControllingBot and ControlledBot().
+	IsConnected         bool
+	IsDefusing          bool
+	IsPlanting          bool
+	IsUnknown           bool // Used to identify unknown/broken players. see https://github.com/markus-wa/demoinfocs-golang/issues/162
+	Alive               bool // True if player is alive
+	LastThrownGrenade   *Equipment
+	GrenadesAmmo        [5]int
+	ButtonsPressedState uint64 // Pressed buttons state represented as an uint64. You can use IsPressingButton(buttonMask) to check for specific buttons.
 
 	Kills  int
 	Deaths int
@@ -905,6 +906,10 @@ func (p *Player) UtilityDamage() int {
 		return 0
 	}
 	return value.Int()
+}
+
+func (p *Player) IsPressingButton(buttonBitMask ButtonBitMask) bool {
+	return (p.ButtonsPressedState & uint64(buttonBitMask)) != 0
 }
 
 // MoneySpentTotal returns the total amount of money the player has spent in the current match.

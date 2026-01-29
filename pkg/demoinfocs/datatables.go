@@ -756,6 +756,24 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 		pawnEntity.Property("m_bSpottedByMask.0001").OnUpdate(spottersChanged)
 	}
 
+	buttonDownMaskProp := pawnEntity.Property("m_pMovementServices.m_nButtonDownMaskPrev")
+	if buttonDownMaskProp != nil {
+		buttonDownMaskProp.OnUpdate(func(val st.PropertyValue) {
+			pl := getPlayerFromPawnEntity(pawnEntity)
+			if pl == nil {
+				return
+			}
+
+			state := val.S2UInt64()
+			pl.ButtonsPressedState = state
+
+			p.eventDispatcher.Dispatch(events.PlayerButtonsStateUpdate{
+				Player:       pl,
+				ButtonsState: state,
+			})
+		})
+	}
+
 	for i := 13; i <= 17; i++ {
 		i := i
 
