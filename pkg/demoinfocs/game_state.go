@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/geo/r3"
 	common "github.com/markus-wa/demoinfocs-golang/v5/pkg/demoinfocs/common"
 	"github.com/markus-wa/demoinfocs-golang/v5/pkg/demoinfocs/constants"
 	"github.com/markus-wa/demoinfocs-golang/v5/pkg/demoinfocs/events"
@@ -20,8 +21,9 @@ type gameState struct {
 	ingameTick                   int
 	tState                       common.TeamState
 	ctState                      common.TeamState
-	playersByUserID              map[int]*common.Player    // Maps user-IDs to players
-	playersByEntityID            map[int]*common.Player    // Maps entity-IDs to players
+	playersByUserID              map[int]*common.Player // Maps user-IDs to players
+	playersByEntityID            map[int]*common.Player // Maps entity-IDs to players
+	aliveByEntityID              map[int]*common.Player
 	playersBySteamID32           map[uint32]*common.Player // Maps 32-bit-steam-IDs to players
 	playerControllerEntities     map[int]st.Entity
 	grenadeProjectiles           map[int]*common.GrenadeProjectile // Maps entity-IDs to active nade-projectiles. That's grenades that have been thrown, but have not yet detonated.
@@ -63,6 +65,7 @@ type gameState struct {
 	// player-flashed events at the end of the frame if there are any.
 	// This slice acts like a FIFO queue, the first projectile inserted is the first one to be removed when it exploded.
 	flyingFlashbangs []*FlyingFlashbang
+	roundTime        int
 }
 
 type FlyingFlashbang struct {
@@ -130,6 +133,7 @@ func (gs gameState) Participants() Participants {
 	return participants{
 		playersByEntityID: gs.playersByEntityID,
 		playersByUserID:   gs.playersByUserID,
+		aliveByEntityID:   gs.aliveByEntityID,
 	}
 }
 
@@ -222,17 +226,79 @@ func (gs gameState) EntityByHandle(handle uint64) st.Entity {
 	return gs.entities[entityIDFromHandle(handle)]
 }
 
+func (gs *gameState) GetRoundTime() int {
+	return gs.roundTime
+}
+
+func (gs *gameState) setPlayerLifeState(pl *common.Player, alive *bool) {
+	pl = pl.ControlledPawn()
+	if pl == nil {
+		return
+	}
+
+	if alive == nil {
+		isAlive := pl.IsAlive()
+		alive = &isAlive
+	}
+
+	gs.setAlive(pl, *alive)
+}
+
+func UpdatePlayerPosition(pl *common.Player, pos r3.Vector, tick int) {
+	if pl.CurrPosition == nil || tick != pl.CurrPosition.Tick {
+		pl.PrevPosition = pl.CurrPosition
+		pl.CurrPosition = &common.Position{
+			Tick:     tick,
+			Position: pos,
+		}
+		return
+	}
+
+	pl.CurrPosition.Position = pos
+}
+
+func (gs *gameState) setAlive(pl *common.Player, alive bool) {
+	if pl.Alive == alive {
+		return
+	}
+
+	playerSpawn := alive && !pl.Alive
+	pl.Alive = alive
+
+	if pl.Entity == nil || !alive {
+		clear(pl.Inventory)
+		delete(gs.aliveByEntityID, pl.EntityID)
+		return
+	}
+
+	gs.aliveByEntityID[pl.EntityID] = pl
+
+	if playerSpawn {
+		UpdatePlayerPosition(pl, pl.Position(), gs.ingameTick)
+		gs.demoInfo.parser.delayedEventHandlers = append(
+			gs.demoInfo.parser.delayedEventHandlers,
+			func() {
+				gs.demoInfo.parser.gameEventHandler.dispatch(events.PlayerSpawn{
+					Player: pl,
+				})
+			},
+		)
+	}
+}
+
 func newGameState(demoInfo demoInfoProvider) *gameState {
 	gs := &gameState{
 		playerControllerEntities: make(map[int]st.Entity),
 		playersByEntityID:        make(map[int]*common.Player),
 		playersByUserID:          make(map[int]*common.Player),
+		aliveByEntityID:          make(map[int]*common.Player),
 		playersBySteamID32:       make(map[uint32]*common.Player),
 		grenadeProjectiles:       make(map[int]*common.GrenadeProjectile),
 		infernos:                 make(map[int]*common.Inferno),
 		weapons:                  make(map[int]*common.Equipment),
 		hostages:                 make(map[int]*common.Hostage),
 		entities:                 make(map[int]st.Entity),
+		bomb:                     common.NewBomb(demoInfo),
 		thrownGrenades:           make(map[*common.Player]map[common.EquipmentType][]*common.Equipment),
 		flyingFlashbangs:         make([]*FlyingFlashbang, 0),
 		lastFlash: lastFlash{
@@ -315,6 +381,7 @@ func (gr gameRules) Entity() st.Entity {
 type participants struct {
 	playersByUserID   map[int]*common.Player // Maps user-IDs to players
 	playersByEntityID map[int]*common.Player // Maps entity-IDs to players
+	aliveByEntityID   map[int]*common.Player
 }
 
 // ByUserID returns all currently connected players in a map where the key is the user-ID.
@@ -392,6 +459,23 @@ func (ptcp participants) Playing() []*common.Player {
 	}
 
 	return res
+}
+
+// Alive returns all players that are currently alive.
+// The returned slice is a snapshot and is not updated on changes.
+func (ptcp participants) Alive() []*common.Player {
+	res := make([]*common.Player, 0, len(ptcp.playersByUserID))
+	for _, p := range ptcp.playersByUserID {
+		if p.IsAlive() {
+			res = append(res, p)
+		}
+	}
+
+	return res
+}
+
+func (ptcp participants) AliveByEntID() map[int]*common.Player {
+	return ptcp.aliveByEntityID
 }
 
 // TeamMembers returns all players belonging to the requested team at this time.

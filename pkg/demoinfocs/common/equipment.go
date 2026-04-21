@@ -1,6 +1,7 @@
 package common
 
 import (
+	"math/rand"
 	"strings"
 
 	"github.com/oklog/ulid/v2"
@@ -131,6 +132,43 @@ const (
 var eqNameToWeapon map[string]EquipmentType
 
 var eqElementToName map[EquipmentType]string
+
+var EquipmentMaxSpeed = map[EquipmentType]int{
+	EqDeagle:       230,
+	EqRevolver:     180,
+	EqDualBerettas: 240,
+	EqFiveSeven:    240,
+	EqGlock:        240,
+	EqP2000:        240,
+	EqUSP:          240,
+	EqP250:         240,
+	EqCZ:           240,
+	EqTec9:         240,
+	EqBizon:        240,
+	EqMac10:        240,
+	EqMP7:          220,
+	EqMP5:          235,
+	EqMP9:          240,
+	EqP90:          230,
+	EqUMP:          230,
+	EqMag7:         225,
+	EqNova:         220,
+	EqSawedOff:     210,
+	EqXM1014:       215,
+	EqM249:         195,
+	EqNegev:        150,
+	EqAK47:         215,
+	EqAUG:          220,
+	EqFamas:        220,
+	EqGalil:        215,
+	EqM4A4:         225,
+	EqM4A1:         225,
+	EqSG553:        210,
+	EqSSG08:        230,
+	EqAWP:          200,
+	EqScar20:       215,
+	EqG3SG1:        215,
+}
 
 func init() {
 	initEqNameToWeapon()
@@ -318,8 +356,14 @@ type Equipment struct {
 	// Used internally to differentiate alternative weapons (M4A4 / M4A1-S etc.) for Source 1 demos.
 	// It's always an empty string with Source 2 demos, you should use Type to know which weapon it is.
 	OriginalString string
+	EntityId       int
+	State          int
+	Skin           *Skin
 
+	uniqueID  int64
 	uniqueID2 ulid.ULID
+
+	demoInfoProvider demoInfoProvider
 }
 
 // String returns a human readable name for the equipment.
@@ -442,8 +486,18 @@ func (e *Equipment) Silenced() bool {
 // NewEquipment creates a new Equipment and sets the UniqueID.
 //
 // Intended for internal use only.
-func NewEquipment(wep EquipmentType) *Equipment {
-	return &Equipment{Type: wep, uniqueID2: ulid.Make()} //nolint:gosec
+func NewEquipment(wep EquipmentType, demoInfoProvider ...demoInfoProvider) *Equipment {
+	eq := &Equipment{
+		Type:      wep,
+		State:     -1,
+		uniqueID:  rand.Int63(),
+		uniqueID2: ulid.Make(),
+	}
+	if len(demoInfoProvider) > 0 {
+		eq.demoInfoProvider = demoInfoProvider[0]
+	}
+
+	return eq //nolint:gosec
 }
 
 var equipmentToAlternative = map[EquipmentType]EquipmentType{

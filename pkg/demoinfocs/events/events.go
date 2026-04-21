@@ -167,6 +167,7 @@ type Kill struct {
 	AttackerBlind     bool
 	NoScope           bool
 	ThroughSmoke      bool
+	InAir             bool
 	Distance          float32
 }
 
@@ -205,6 +206,7 @@ type GrenadeEvent struct {
 	Position        r3.Vector
 	Thrower         *common.Player // May be nil with POV demos or if the demo is partially corrupt (player is 'unconnected', see #156 and #172).
 	GrenadeEntityID int
+	Projectile      *common.GrenadeProjectile
 }
 
 // Base returns the GrenadeEvent itself, used for catching all events with GrenadeEventIf.
@@ -283,6 +285,7 @@ type PlayerFlashed struct {
 	Player     *common.Player // May be nil if the demo is partially corrupt (player is 'unconnected', see #156 and #172).
 	Attacker   *common.Player // May be nil if the demo is partially corrupt (player is 'unconnected', see #156 and #172).
 	Projectile *common.GrenadeProjectile
+	Duration   float32
 }
 
 // FlashDuration returns the duration of the blinding effect.

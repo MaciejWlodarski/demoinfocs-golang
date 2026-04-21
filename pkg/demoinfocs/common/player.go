@@ -14,9 +14,10 @@ import (
 type Player struct {
 	demoInfoProvider demoInfoProvider // provider for demo info such as tick-rate or current tick
 
-	SteamID64           uint64             // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
-	UserID              int                // Mostly used in game-events to address this player
-	Name                string             // Steam / in-game user name
+	SteamID64           uint64 // 64-bit representation of the user's Steam ID. See https://developer.valvesoftware.com/wiki/SteamID
+	UserID              int    // Mostly used in game-events to address this player
+	Name                string // Steam / in-game user name
+	Names               []string
 	Inventory           map[int]*Equipment // All weapons / equipment the player is currently carrying. See also Weapons().
 	EntityID            int                // Usually the same as Entity.ID() but may be different between player death and re-spawn.
 	Entity              st.Entity          // May be nil between player-death and re-spawn
@@ -29,8 +30,18 @@ type Player struct {
 	IsDefusing          bool
 	IsPlanting          bool
 	IsReloading         bool
-	IsUnknown           bool   // Used to identify unknown/broken players. see https://github.com/markus-wa/demoinfocs-golang/issues/162
+	IsUnknown           bool // Used to identify unknown/broken players. see https://github.com/markus-wa/demoinfocs-golang/issues/162
+	Alive               bool
+	LastThrownGrenade   *Equipment
+	GrenadesAmmo        [5]int
 	ButtonsPressedState uint64 // Pressed buttons state represented as an uint64. You can use IsPressingButton(buttonMask) to check for specific buttons.
+	Kills               int
+	Deaths              int
+	CurrPosition        *Position
+	PrevPosition        *Position
+	ViewAngle           r3.Vector
+	FlagState           uint64
+	ActiveWep           *Equipment
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {
@@ -81,16 +92,20 @@ func (p *Player) SteamID32() uint32 {
 
 // IsAlive returns true if the player is alive.
 func (p *Player) IsAlive() bool {
-	if p.Health() > 0 {
-		return true
+	if p.Team < 2 {
+		return false
 	}
 
-	pawnEntity := p.PlayerPawnEntity()
-	if pawnEntity != nil {
-		return pawnEntity.PropertyValueMust("m_lifeState").UInt64() == 0
+	if pawnEntity := p.PlayerPawnEntity(); pawnEntity != nil {
+		if lifeStateVal, ok := pawnEntity.PropertyValue("m_lifeState"); ok {
+			if lifeStateVal.UInt64() == 0 {
+				return p.Health() > 0
+			}
+			return false
+		}
+		return p.Health() > 0
 	}
-
-	return getBool(p.Entity, "m_bPawnIsAlive")
+	return false
 }
 
 // IsBlinded returns true if the player is currently flashed.
@@ -578,13 +593,13 @@ func (p *Player) ColorOrErr() (Color, error) {
 	return Color(p.Entity.PropertyValueMust("m_iCompTeammateColor").Int()), nil
 }
 
-// Kills returns the amount of kills the player has as shown on the scoreboard.
-func (p *Player) Kills() int {
+// KillsCount returns the amount of kills the player has as shown on the scoreboard.
+func (p *Player) KillsCount() int {
 	return getInt(p.Entity, "m_pActionTrackingServices.m_iKills")
 }
 
-// Deaths returns the amount of deaths the player has as shown on the scoreboard.
-func (p *Player) Deaths() int {
+// DeathsCount returns the amount of deaths the player has as shown on the scoreboard.
+func (p *Player) DeathsCount() int {
 	return getInt(p.Entity, "m_pActionTrackingServices.m_iDeaths")
 }
 
@@ -647,6 +662,7 @@ func (p *Player) IsGrabbingHostage() bool {
 type demoInfoProvider interface {
 	IngameTick() int   // current in-game tick, used for IsBlinded()
 	TickRate() float64 // in-game tick rate, used for Player.IsBlinded()
+	Bomb() *Bomb
 	FindPlayerByHandle(handle uint64) *Player
 	FindPlayerByPawnHandle(handle uint64) *Player
 	FindWeaponByEntityID(id int) *Equipment

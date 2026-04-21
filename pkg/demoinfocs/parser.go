@@ -594,6 +594,10 @@ func (p demoInfoProvider) IngameTick() int {
 	return p.parser.gameState.IngameTick()
 }
 
+func (p demoInfoProvider) Bomb() *common.Bomb {
+	return p.parser.gameState.Bomb()
+}
+
 func (p demoInfoProvider) TickRate() float64 {
 	return p.parser.TickRate()
 }

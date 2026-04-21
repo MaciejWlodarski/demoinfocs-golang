@@ -27,15 +27,19 @@ const (
 // GrenadeProjectile is a grenade thrown intentionally by a player. It is used to track grenade projectile
 // positions between the time at which they are thrown and until they detonate.
 type GrenadeProjectile struct {
-	Entity         st.Entity
-	WeaponInstance *Equipment
-	Thrower        *Player // Always seems to be the same as Owner, even if the grenade was picked up
-	Owner          *Player // Always seems to be the same as Thrower, even if the grenade was picked up
+	Entity          st.Entity
+	WeaponInstance  *Equipment
+	Thrower         *Player // Always seems to be the same as Owner, even if the grenade was picked up
+	Owner           *Player // Always seems to be the same as Thrower, even if the grenade was picked up
+	InitialPosition r3.Vector
+	InitialVelocity r3.Vector
+	Bouces          int
 
 	Trajectory []TrajectoryEntry // List of all known locations and the point in time of the grenade up to the current point
 
 	// uniqueID is used to distinguish different grenades (which potentially have the same, reused entityID) from each other.
-	uniqueID int64
+	uniqueID         int64
+	demoInfoProvider demoInfoProvider
 }
 
 // Position returns the current position of the grenade projectile in world coordinates.
@@ -45,7 +49,14 @@ func (g *GrenadeProjectile) Position() r3.Vector {
 
 // Velocity returns the projectile's velocity.
 func (g *GrenadeProjectile) Velocity() r3.Vector {
-	return g.Entity.PropertyValueMust("m_vecVelocity").R3Vec()
+	x := g.Entity.Property("m_vecX").Value().Float()
+	y := g.Entity.Property("m_vecY").Value().Float()
+	z := g.Entity.Property("m_vecZ").Value().Float()
+	return r3.Vector{
+		X: float64(x),
+		Y: float64(y),
+		Z: float64(z),
+	}
 }
 
 // UniqueID returns the unique id of the grenade.
@@ -55,11 +66,24 @@ func (g *GrenadeProjectile) UniqueID() int64 {
 	return g.uniqueID
 }
 
+func (g *GrenadeProjectile) Team() Team {
+	if g.Owner == nil {
+		return Team(getUInt64(g.Entity, "m_iTeamNum"))
+	}
+
+	return g.Owner.Team
+}
+
 // NewGrenadeProjectile creates a grenade projectile and sets the Unique-ID.
 //
 // Intended for internal use only.
-func NewGrenadeProjectile() *GrenadeProjectile {
-	return &GrenadeProjectile{uniqueID: rand.Int63()} //nolint:gosec
+func NewGrenadeProjectile(demoInfoProvider ...demoInfoProvider) *GrenadeProjectile {
+	proj := &GrenadeProjectile{uniqueID: rand.Int63()} //nolint:gosec
+	if len(demoInfoProvider) > 0 {
+		proj.demoInfoProvider = demoInfoProvider[0]
+	}
+
+	return proj
 }
 
 // Bomb tracks the bomb's position, and the player carrying it, if any.
@@ -68,6 +92,20 @@ type Bomb struct {
 	// Contains the last location of the dropped or planted bomb.
 	LastOnGroundPosition r3.Vector
 	Carrier              *Player
+	Planted              bool
+	Defused              bool
+	InDefuse             bool
+
+	demoInfoProvider demoInfoProvider
+}
+
+func NewBomb(demoInfoProvider ...demoInfoProvider) Bomb {
+	bomb := Bomb{}
+	if len(demoInfoProvider) > 0 {
+		bomb.demoInfoProvider = demoInfoProvider[0]
+	}
+
+	return bomb
 }
 
 // Position returns the current position of the bomb.
@@ -87,7 +125,8 @@ type TeamState struct {
 	membersCallback  func(Team) []*Player
 	demoInfoProvider demoInfoProvider
 
-	Entity st.Entity
+	Entity   st.Entity
+	Timeouts int
 
 	// Terrorist TeamState for CTs, CT TeamState for Terrorists
 	Opponent *TeamState

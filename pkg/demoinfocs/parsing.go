@@ -19,6 +19,7 @@ import (
 
 const (
 	playerWeaponPrefixS2 = "m_pWeaponServices.m_hMyWeapons"
+	playerAmmoPrefix     = "m_pWeaponServices.m_iAmmo"
 	gameRulesPrefixS2    = "m_pGameRules"
 )
 

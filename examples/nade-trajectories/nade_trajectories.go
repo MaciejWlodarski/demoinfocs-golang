@@ -142,7 +142,7 @@ func drawInfernos(gc *draw2dimg.GraphicContext, infernos []*common.Inferno) {
 	// Calculate hulls
 	hulls := make([][]r2.Point, len(infernos))
 	for i := range infernos {
-		hulls[i] = infernos[i].Fires().ConvexHull2D()
+		hulls[i] = infernos[i].GetFires().ConvexHull2D()
 	}
 
 	for _, hull := range hulls {

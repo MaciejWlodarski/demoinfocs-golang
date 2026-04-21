@@ -519,6 +519,11 @@ func (geh gameEventHandler) playerBlind(data map[string]*msg.CMsgSource1LegacyGa
 
 	attacker := geh.gameState().lastFlash.player
 	projectile := geh.gameState().lastFlash.projectileByPlayer[attacker]
+	player := geh.playerByUserID32(data["userid"].GetValShort())
+	duration := float32(0)
+	if player != nil {
+		duration = player.FlashDuration
+	}
 	unassert.NotNilf(projectile, "PlayerFlashed.Projectile should never be nil")
 
 	if projectile != nil {
@@ -531,9 +536,10 @@ func (geh gameEventHandler) playerBlind(data map[string]*msg.CMsgSource1LegacyGa
 	}
 
 	geh.dispatch(events.PlayerFlashed{
-		Player:     geh.playerByUserID32(data["userid"].GetValShort()),
+		Player:     player,
 		Attacker:   attacker,
 		Projectile: projectile,
+		Duration:   duration,
 	})
 }
 
@@ -971,6 +977,7 @@ func (geh gameEventHandler) nadeEvent(data map[string]*msg.CMsgSource1LegacyGame
 		Thrower:         thrower,
 		Position:        position,
 		GrenadeEntityID: nadeEntityID,
+		Projectile:      geh.gameState().grenadeProjectiles[nadeEntityID],
 	}
 }
 
@@ -1168,6 +1175,13 @@ func (p *parser) processFlyingFlashbangs() {
 			Player:     player,
 			Attacker:   flashbang.projectile.Thrower,
 			Projectile: flashbang.projectile,
+			Duration:   player.FlashDuration,
+		})
+		p.gameEventHandler.dispatch(events.FakePlayerFlashed{
+			Player:     player,
+			Attacker:   flashbang.projectile.Thrower,
+			Projectile: flashbang.projectile,
+			Duration:   player.FlashDuration,
 		})
 	}
 
