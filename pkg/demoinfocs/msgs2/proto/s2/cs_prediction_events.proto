@@ -1,7 +1,5 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
-import "s2/networkbasetypes.proto";
-import "s2/prediction_events.proto";
+import "networkbasetypes.proto";
+import "prediction_events.proto";
 
 enum ECSPredictionEvents {
 	CSPE_DamageTag = 1;
@@ -16,6 +14,4 @@ message CCSPredictionEvent_DamageTag {
 
 message CCSPredictionEvent_AddAimPunch {
 	optional .CMsgQAngle punch_angle = 1;
-	optional uint32 when_tick = 2;
-	optional float when_tick_frac = 3;
 }

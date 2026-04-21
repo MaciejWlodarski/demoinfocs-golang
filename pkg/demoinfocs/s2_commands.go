@@ -267,7 +267,7 @@ var teCreators = map[msgs2.ETEProtobufIds]NetMessageCreator{
 var bidirectionalMessageCreators = map[msgs2.Bidirectional_Messages]NetMessageCreator{
 	msgs2.Bidirectional_Messages_bi_RebroadcastGameEvent: func() proto.Message { return &msgs2.CBidirMsg_RebroadcastGameEvent{} },
 	msgs2.Bidirectional_Messages_bi_RebroadcastSource:    func() proto.Message { return &msgs2.CBidirMsg_RebroadcastSource{} },
-	msgs2.Bidirectional_Messages_bi_GameEvent:            func() proto.Message { return &msgs2.CBidirMsg_RebroadcastGameEvent{} },
+	msgs2.Bidirectional_Messages_bi_GameEvent_DEPRECATED: func() proto.Message { return &msgs2.CBidirMsg_RebroadcastGameEvent{} },
 	msgs2.Bidirectional_Messages_bi_PredictionEvent:      func() proto.Message { return &msgs2.CBidirMsg_PredictionEvent{} },
 }
 
@@ -409,7 +409,7 @@ func (p *parser) handleDemoFileHeader(msg *msgs2.CDemoFileHeader) {
 	p.header.ServerName = msg.GetServerName()
 	p.header.GameDirectory = msg.GetGameDirectory()
 	p.header.MapName = msg.GetMapName()
-	networkProtocol := int(msg.GetNetworkProtocol())
+	networkProtocol := int(msg.GetPatchVersion())
 	p.header.NetworkProtocol = networkProtocol
 
 	if p.source2FallbackGameEventListBin == nil {

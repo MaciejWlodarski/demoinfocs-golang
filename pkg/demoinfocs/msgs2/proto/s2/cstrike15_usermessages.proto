@@ -1,7 +1,5 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
-import "s2/networkbasetypes.proto";
-import "s2/cstrike15_gcmessages.proto";
+import "networkbasetypes.proto";
+import "cstrike15_gcmessages.proto";
 
 enum ECstrike15UserMessages {
 	CS_UM_VGUIMenu = 301;
@@ -81,6 +79,7 @@ enum ECstrike15UserMessages {
 	CS_UM_DamagePrediction = 386;
 	CS_UM_RecurringMissionSchema = 387;
 	CS_UM_SendPlayerLoadout = 388;
+	CS_UM_WeaponMagDrop = 389;
 }
 
 enum ECSUsrMsg_DisconnectToLobby_Action {
@@ -241,6 +240,12 @@ message CCSUsrMsg_WeaponSound {
 	optional string sound = 5;
 	optional float game_timestamp = 6;
 	optional fixed32 source_soundscapeid = 7;
+}
+
+message CCSUsrMsg_WeaponMagDrop {
+	optional int32 entidx = 1 [default = -1];
+	optional int32 secondary_data = 2;
+	optional bool server_event = 3;
 }
 
 message CCSUsrMsg_UpdateScreenHealthBar {

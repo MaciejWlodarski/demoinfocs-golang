@@ -1,7 +1,5 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
-import "s2/steamnetworkingsockets_messages.proto";
-import "s2/steamdatagram_messages_sdr.proto";
+import "steamnetworkingsockets_messages.proto";
+import "steamdatagram_messages_sdr.proto";
 
 option optimize_for = SPEED;
 option cc_generic_services = true;

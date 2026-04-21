@@ -1,6 +1,4 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
-import "s2/networkbasetypes.proto";
+import "networkbasetypes.proto";
 
 enum EHitGroup {
 	EHG_Generic = 0;

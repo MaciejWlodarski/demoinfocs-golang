@@ -1,7 +1,5 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
-import "s2/networkbasetypes.proto";
-import "s2/usercmd.proto";
+import "networkbasetypes.proto";
+import "usercmd.proto";
 
 message CSGOInterpolationInfoPB {
 	optional int32 src_tick = 1 [default = -1];

@@ -1,5 +1,3 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
 enum EGCSystemMsg {
 	k_EGCMsgInvalid = 0;
 	k_EGCMsgMulti = 1;

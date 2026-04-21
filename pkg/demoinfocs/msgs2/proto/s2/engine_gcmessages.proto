@@ -1,5 +1,3 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
 import "google/protobuf/descriptor.proto";
 
 message CEngineGotvSyncPacket {

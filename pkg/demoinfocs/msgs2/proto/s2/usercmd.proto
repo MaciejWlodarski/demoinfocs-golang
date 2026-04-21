@@ -1,6 +1,4 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
-import "s2/networkbasetypes.proto";
+import "networkbasetypes.proto";
 
 message CInButtonStatePB {
 	optional uint64 buttonstate1 = 1;
@@ -16,6 +14,10 @@ message CSubtickMoveStep {
 	optional float analog_left_delta = 5;
 	optional float pitch_delta = 8;
 	optional float yaw_delta = 9;
+}
+
+message CBaseUserCmdExecutionNotes {
+	optional string ignored_reason = 1;
 }
 
 message CBaseUserCmdPB {
@@ -37,6 +39,7 @@ message CBaseUserCmdPB {
 	optional bytes move_crc = 19;
 	optional uint32 consumed_server_angle_changes = 20;
 	optional int32 cmd_flags = 21;
+	optional .CBaseUserCmdExecutionNotes execution_notes = 22;
 }
 
 message CUserCmdBasePB {

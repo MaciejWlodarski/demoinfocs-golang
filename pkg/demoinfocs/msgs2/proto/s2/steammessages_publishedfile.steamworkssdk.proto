@@ -1,6 +1,4 @@
-package com.github.markus_wa.demoinfocs_golang.s2;
-
-import "s2/steammessages_unified_base.steamworkssdk.proto";
+import "steammessages_unified_base.steamworkssdk.proto";
 
 message CPublishedFile_Subscribe_Request {
 	optional uint64 publishedfileid = 1;
