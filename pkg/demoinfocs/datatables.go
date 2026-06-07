@@ -417,6 +417,18 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 		p.gameState.setPlayerLifeState(pl, nil)
 	})
 
+	if prop := controllerEntity.Property("m_iCoachingTeam"); prop != nil {
+		prop.OnUpdate(func(pv st.PropertyValue) {
+			val := pv.Int()
+			if val > 0 {
+				pl.Coaching = true
+			} else {
+				pl.Coaching = false
+			}
+			p.gameState.setPlayerLifeState(pl, nil)
+		})
+	}
+
 	controllerEntity.Property("m_iConnected").OnUpdate(func(val st.PropertyValue) {
 		pl := p.getOrCreatePlayerFromControllerEntity(controllerEntity)
 		if pl == nil {

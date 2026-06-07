@@ -48,6 +48,7 @@ type Player struct {
 	ViewAngle    r3.Vector
 	FlagState    uint64
 	ActiveWep    *Equipment
+	Coaching     bool
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {

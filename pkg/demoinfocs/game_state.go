@@ -107,6 +107,9 @@ func (gs *gameState) setPlayerLifeState(pl *common.Player, alive *bool) {
 		isAlive := pl.IsAlive()
 		alive = &isAlive
 	}
+	if pl.Coaching {
+		alive = new(bool)
+	}
 
 	gs.setAlive(pl, *alive)
 }
