@@ -41,6 +41,13 @@ func (e *Entity) SerialNum() int {
 	return int(e.serial)
 }
 
+// IsActive reports whether the entity is currently inside the packet-entity
+// PVS. An entity that left PVS retains its last networked fields but is
+// dormant until it enters again.
+func (e *Entity) IsActive() bool {
+	return e.active
+}
+
 func (e *Entity) Properties() (out []st.Property) {
 	for _, fp := range e.class.getFieldPaths(newFieldPath(), e.state) {
 		out = append(out, e.Property(e.class.getNameForFieldPath(fp)))
@@ -579,6 +586,8 @@ func (p *Parser) OnPacketEntities(m *msgs2.CSVCMsg_PacketEntities) error {
 				op |= st.EntityOpDeleted
 
 				e.Destroy()
+			} else {
+				e.active = false
 			}
 		}
 
