@@ -153,6 +153,10 @@ func (r *reader) readByte() byte {
 
 // readBytes reads the given number of bytes
 func (r *reader) readBytes(n uint32) []byte {
+	// Include complete bytes already buffered by peekBits before allocating.
+	if uint64(n) > uint64(r.remBytes())+uint64(r.bitCount/8) {
+		_panicf("readBytes: insufficient buffer (%d bytes requested)", n)
+	}
 	// Fast path if we're byte aligned
 	if r.bitCount == 0 {
 		r.pos += n

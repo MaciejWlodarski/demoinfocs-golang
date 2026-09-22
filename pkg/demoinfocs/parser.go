@@ -53,6 +53,8 @@ Example (without error handling):
 Prints out '{A/B} site went BOOM!' when a bomb explodes.
 */
 type parser struct {
+	snappyScratch  []byte
+	pendingMsgBufs []*[]byte
 	// Important fields
 
 	bitReader                       *bit.BitReader
@@ -295,6 +297,17 @@ func (p *parser) setError(err error) {
 	p.err = err
 
 	p.errLock.Unlock()
+	p.unregisterAllHandlers()
+}
+
+// Stop delivery of queued backlog after the first fatal error.
+func (p *parser) unregisterAllHandlers() {
+	if p.msgDispatcher != nil {
+		p.msgDispatcher.UnregisterAllHandlers()
+	}
+	if p.eventDispatcher != nil {
+		p.eventDispatcher.UnregisterAllHandlers()
+	}
 }
 
 // NewParser creates a new Parser with the default configuration.

@@ -112,3 +112,11 @@ Go 1.27.1, Apple M5, po 3 naprzemienne przebiegi bazowego d170961 i kandydata na
 | Anubis | 10,044 s | 6,539 s | 34,9% |
 
 Łączne alokacje zmieniły się nieznacznie: około 4,119 → 4,100 GB oraz 3,130 → 3,118 GB (TotalAlloc, nie pamięć szczytowa). Wcześniejsza seria miała znacznie niższe czasy bezwzględne, więc obciążenie komputera wpływa na wyniki; nie jest to gwarancja przyspieszenia pełnej aplikacji. Wszystkie 12 przebiegów zakończyło się bez błędu. Surowe pomiary tej serii: `/tmp/demoinfocs-bulk-benchmark-final.json`; harness: `/tmp/demoinfocs-upstream-audit-20260922/audit-fork.go`.
+
+**Etap 2: transport wiadomości i błędne dane**
+
+Pierwszą paczkę zapisano jako `4a60032`. Kolejna paczka przenosi pooling buforów ramek i zagnieżdżonych wiadomości z `227d6f7`, poprawny rozmiar scratch Snappy i gobitread v0.2.5 z `a13e82b`, pooling bitreadera (`b4de502`), zatrzymanie callbacków po pierwszym błędzie (`f6d86d5`), kontrolę indeksów i wielkości kolekcji (`7d71cbb`) oraz kontrolę rozmiaru readBytes przed alokacją (`0d4e337`). Pozostałe fragmenty tych commitów nie są automatycznie uznawane za przeniesione.
+
+Adaptacje: kontrola readBytes uwzględnia bajty już pobrane przez Huffman lookahead; bufor zagnieżdżonej wiadomości jest zwracany także przy błędzie; długość jest sprawdzana względem pozostałej zawartości pakietu przed alokacją. Po aktualizacji gobitread jawnie wykrywamy krótki odczyt ramki jako unexpected EOF. Zachowano kolejność priorytetów wiadomości i snapshoty skinów. Nie dodano obsługi transmisji CSTV ani szyfrowanych wiadomości.
+
+Weryfikacja: testy z race PASS; dwa przebiegi każdego demo w golden PASS; pełne JSON-y konsumenta dla obu dem PASS względem niezmienionego d170961. Testy jednostkowe obejmują własność bajtów po ponownym użyciu bufora, kolejkę po błędzie, zachowanie pierwszego błędu, uszkodzone długości/indeksy i odczyt po lookahead.

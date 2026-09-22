@@ -608,6 +608,9 @@ func (e *Entity) readFields(r *reader, paths *[]*fieldPath) {
 		}
 
 		if updateCollection {
+			if val.(uint64) > maxFieldIndex {
+				_panicf("variable collection size %d out of range [0, %d]: corrupt or desynced demo bitstream", val, maxFieldIndex)
+			}
 			// Keep the fork's collection snapshot semantics: fieldState.set
 			// preserves an existing nested state. Resizing it in place drops
 			// baseline weapon attributes when a later length update is zero.

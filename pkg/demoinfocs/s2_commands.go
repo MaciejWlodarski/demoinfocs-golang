@@ -308,11 +308,28 @@ func (p *parser) handleDemoPacket(pack *msgs2.CDemoPacket) {
 	r := bitread.NewSmallBitReader(bytes.NewReader(b))
 
 	p.pendingMessagesCache = p.pendingMessagesCache[:0]
+	p.pendingMsgBufs = p.pendingMsgBufs[:0]
+	defer func() {
+		for _, bp := range p.pendingMsgBufs {
+			putMsgBuf(bp)
+		}
+		clear(p.pendingMsgBufs)
+		clear(p.pendingMessagesCache)
+		if err := r.Pool(); err != nil {
+			p.setError(err)
+		}
+	}()
 
 	for len(b)*8-r.ActualPosition() > 7 {
 		t := int32(r.ReadUBitInt())
 		size := r.ReadVarInt32()
-		buf := r.ReadBytes(int(size))
+		if uint64(size)*8 > uint64(len(b)*8-r.ActualPosition()) {
+			panic("embedded message size exceeds remaining packet")
+		}
+		bp := getMsgBuf(int(size))
+		p.pendingMsgBufs = append(p.pendingMsgBufs, bp)
+		r.ReadBytesInto(bp, int(size))
+		buf := *bp
 
 		p.pendingMessagesCache = append(p.pendingMessagesCache, pendingMessage{t, buf})
 	}
