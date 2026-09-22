@@ -64,7 +64,6 @@
     "MoneyUpdate": 2246,
     "OtherDeath": 153,
     "OvertimeNumberChanged": 2,
-    "ParserWarn": 74,
     "PlayerConnect": 12,
     "PlayerDisconnected": 6,
     "PlayerFlashed": 364,
@@ -94,9 +93,7 @@
     "WeaponFire": 4156,
     "WeaponZoom": 351
   },
-  "Warnings": {
-    "11:unknown message type: 389": 74
-  },
+  "Warnings": {},
   "Digests": {
     "AliveSamples": "bd057fa15a60e1c7a10155bc8e4ad9baa8c17643e29f3c10229cc8a312268c82",
     "ArmorUpdate": "de9005a968e30aa6ad6cdff9cf9a12ac840da7a4ee8475fdcca380803998068e",
@@ -105,7 +102,7 @@
     "DefuseKitUpdate": "7be66e64be30f92f15ba6b6031db5b863186b53083954a951389edcc0a405036",
     "FakePlayerFlashed": "c84ae0c70358b24d5f19889bb46c007a8f78e8f393a49c7c89fbb552a0662c13",
     "FakeSmokeStart": "35591a42f1fcb455ad6653ad518ed5dd51c14dbabbd3555f25e7bdb1c426a0ad",
-    "GrenadeProjectileThrow": "84497377ffedaab7f7dfa5a619c40d596c941cf13ada160222b4061b6ef142c7",
+    "GrenadeProjectileThrow": "7482b184d7cdb08c678bf583df5df328fcf11112422c393a4e7bbc2bccfe5dcd",
     "GrenadeUpdate": "1f4f8c321421be1100c96d469a42f4d9b9fbda20f18c81b02c3669551c3cf472",
     "HandSwitch": "3b8bb173940a05d191dc598adc401b63a56db2fe43f6228873bb862bdcee2cf1",
     "HelmetUpdate": "6fb82c931f30557c4b1b8fb9ca9b979c4e5133fafa9fdccc3e18cdfa5d303b39",

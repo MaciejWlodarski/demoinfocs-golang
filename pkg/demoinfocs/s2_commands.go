@@ -366,10 +366,10 @@ func (p *parser) handleDemoPacket(pack *msgs2.CDemoPacket) {
 		}
 
 		if msgCreator == nil {
-			p.msgDispatcher.Dispatch(events.ParserWarn{
+			p.msgQueue <- events.ParserWarn{
 				Message: fmt.Sprintf("unknown message type: %d", m.t),
 				Type:    events.WarnTypeUnknownProtobufMessage,
-			})
+			}
 
 			continue
 		}

@@ -327,6 +327,7 @@ func (geh gameEventHandler) clearGrenadeProjectiles() {
 	// Thrown grenades could not be deleted at the end of the round (if they are thrown at the very end, they never get destroyed)
 	geh.gameState().thrownGrenades = make(map[*common.Player][]*common.Equipment)
 	geh.gameState().flyingFlashbangs = make([]*FlyingFlashbang, 0)
+	geh.gameState().flashedEntitiesThisFrame = nil
 }
 
 func (geh gameEventHandler) roundStart(data map[string]*msg.CSVCMsg_GameEventKeyT) {
@@ -574,6 +575,9 @@ func (geh gameEventHandler) playerHurt(data map[string]*msg.CSVCMsg_GameEventKey
 	userID := data["userid"].GetValShort()
 	player := geh.playerByUserID32(userID)
 	attacker := geh.playerByUserID32(data["attacker"].GetValShort())
+	if attacker == nil && data["attacker_pawn"] != nil {
+		attacker = geh.gameState().Participants().FindByPawnHandle(uint64(data["attacker_pawn"].GetValLong()))
+	}
 
 	wepType := common.MapEquipment(data["weapon"].GetValString())
 	wepType = geh.attackerWeaponType(wepType, userID)
@@ -1200,24 +1204,43 @@ func (p *parser) processRoundProgressEvents() {
 }
 
 func (p *parser) processFlyingFlashbangs() {
+	victims := p.gameState.flashedEntitiesThisFrame
+	p.gameState.flashedEntitiesThisFrame = nil
+
 	if len(p.gameState.flyingFlashbangs) == 0 {
 		return
 	}
 
-	flashbang := p.gameState.flyingFlashbangs[0]
-	if len(flashbang.flashedEntityIDs) == 0 {
-		// Flashbang exploded and didn't flash any players, remove it from the queue
-		if flashbang.explodedFrame > 0 && flashbang.explodedFrame < p.currentFrame {
-			p.gameState.flyingFlashbangs = p.gameState.flyingFlashbangs[1:]
+	// Split the in-flight flashbangs into those that detonated this frame and those still airborne.
+	// Detonation is keyed by the destroyed projectile's identity (see the OnDestroy handler), so the
+	// queue no longer relies on FIFO order and a zero-victim detonation can't desync attribution.
+	var detonated []*FlyingFlashbang
+
+	kept := p.gameState.flyingFlashbangs[:0]
+
+	for _, flashbang := range p.gameState.flyingFlashbangs {
+		if flashbang.detonated && flashbang.explodedFrame == p.currentFrame {
+			detonated = append(detonated, flashbang)
+		} else {
+			kept = append(kept, flashbang)
 		}
+	}
+
+	p.gameState.flyingFlashbangs = kept
+
+	if len(detonated) == 0 {
 		return
 	}
 
-	for _, entityID := range flashbang.flashedEntityIDs {
+	// Attribute each pawn flashed this frame to the flashbang that detonated this frame. When more
+	// than one detonated simultaneously, pick the closest by detonation position.
+	for _, entityID := range victims {
 		player := p.gameState.Participants().ByEntityID()[entityID]
 		if player == nil {
 			continue
 		}
+
+		flashbang := nearestDetonatedFlashbang(detonated, player)
 
 		p.gameEventHandler.dispatch(events.FakePlayerFlashed{
 			Player:     player,
@@ -1226,8 +1249,28 @@ func (p *parser) processFlyingFlashbangs() {
 			Duration:   player.FlashDuration,
 		})
 	}
+}
 
-	p.gameState.flyingFlashbangs = p.gameState.flyingFlashbangs[1:]
+// nearestDetonatedFlashbang returns the flashbang whose detonation position is closest to the
+// player - used to attribute a victim when multiple flashbangs detonate on the same frame.
+func nearestDetonatedFlashbang(flashbangs []*FlyingFlashbang, player *common.Player) *FlyingFlashbang {
+	nearest := flashbangs[0]
+
+	if len(flashbangs) == 1 {
+		return nearest
+	}
+
+	pos := player.Position()
+	minDist := pos.Sub(nearest.position).Norm()
+
+	for _, flashbang := range flashbangs[1:] {
+		if dist := pos.Sub(flashbang.position).Norm(); dist < minDist {
+			minDist = dist
+			nearest = flashbang
+		}
+	}
+
+	return nearest
 }
 
 // Do some processing to dispatch game events at the end of the frame in correct order.

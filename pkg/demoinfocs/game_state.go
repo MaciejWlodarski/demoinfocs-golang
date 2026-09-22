@@ -63,13 +63,15 @@ type gameState struct {
 	// As a solution, we keep track of flashbang projectiles created and all m_flFlashDuration prop updates related
 	// to this projectile. As all m_flFlashDuration prop updates occur during the same frame, we batch dispatch
 	// player-flashed events at the end of the frame if there are any.
-	// This slice acts like a FIFO queue, the first projectile inserted is the first one to be removed when it exploded.
-	flyingFlashbangs []*FlyingFlashbang
-	smokes           map[int]*common.Smoke // Maps entity-IDs to active smokes.
-	wepsToRemove     map[int]*common.Equipment
-	defuseKits       map[int]*common.Equipment
-	lastFreezeEnd    int
-	roundTime        int
+	// Match victims with actual detonations at frame end; throw order is not detonation order.
+	flyingFlashbangs         []*FlyingFlashbang
+	flashedEntitiesThisFrame []int
+	lastKnownGrenadeWeapons  map[*common.Player]map[common.EquipmentType]*common.Equipment
+	smokes                   map[int]*common.Smoke // Maps entity-IDs to active smokes.
+	wepsToRemove             map[int]*common.Equipment
+	defuseKits               map[int]*common.Equipment
+	lastFreezeEnd            int
+	roundTime                int
 }
 
 func (gs *gameState) GetRoundTime() int {
@@ -77,9 +79,10 @@ func (gs *gameState) GetRoundTime() int {
 }
 
 type FlyingFlashbang struct {
-	projectile       *common.GrenadeProjectile
-	flashedEntityIDs []int
-	explodedFrame    int
+	projectile    *common.GrenadeProjectile
+	position      r3.Vector
+	explodedFrame int
+	detonated     bool
 }
 
 type ingameTickNumber int
@@ -623,4 +626,35 @@ func (ptcp participants) SpottedBy(spotter *common.Player) (spotted []*common.Pl
 	}
 
 	return
+}
+
+// rememberGrenadeWeapon is called on inventory/ownership updates, not every tick.
+// Keep a snapshot after removal so later owner/state mutations cannot alter it.
+func (gs *gameState) rememberGrenadeWeapon(pl *common.Player, weapon *common.Equipment) {
+	if pl == nil || weapon == nil || weapon.Entity == nil || weapon.Class() != common.EqClassGrenade {
+		return
+	}
+	if gs.lastKnownGrenadeWeapons == nil {
+		gs.lastKnownGrenadeWeapons = make(map[*common.Player]map[common.EquipmentType]*common.Equipment)
+	}
+	if gs.lastKnownGrenadeWeapons[pl] == nil {
+		gs.lastKnownGrenadeWeapons[pl] = make(map[common.EquipmentType]*common.Equipment)
+	}
+	snapshot := *weapon
+	snapshot.Owner = pl
+	gs.lastKnownGrenadeWeapons[pl][weapon.Type] = &snapshot
+}
+
+func (p *parser) thrownGrenadeInstance(thrower *common.Player, kind common.EquipmentType) *common.Equipment {
+	weapon := getLastThrownGrenade(thrower, kind, p.demoInfoProvider)
+	if weapon.Entity == nil && thrower != nil {
+		if remembered := p.gameState.lastKnownGrenadeWeapons[thrower][kind]; remembered != nil {
+			weapon = remembered
+		}
+	}
+	snapshot := *weapon
+	if thrower != nil {
+		snapshot.Owner = thrower
+	}
+	return &snapshot
 }

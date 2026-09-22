@@ -668,13 +668,8 @@ func (p *parser) bindNewPlayerPawnS2(pawnEntity st.Entity) {
 
 		pl.FlashDuration = valFloat
 
-		if pl.FlashDuration > 0 {
-			if len(p.gameState.flyingFlashbangs) == 0 {
-				return
-			}
-
-			flashbang := p.gameState.flyingFlashbangs[0]
-			flashbang.flashedEntityIDs = append(flashbang.flashedEntityIDs, pl.EntityID)
+		if pl.FlashDuration > 0 && len(p.gameState.flyingFlashbangs) > 0 {
+			p.gameState.flashedEntitiesThisFrame = append(p.gameState.flashedEntitiesThisFrame, pl.EntityID)
 		}
 	})
 
@@ -884,6 +879,7 @@ func (p *parser) bindPlayerWeaponsS2(pawnEntity st.Entity, pl *common.Player) {
 
 			entityID, wep := getWep(val)
 			inventory[int(entityID)] = wep
+			p.gameState.rememberGrenadeWeapon(pl, wep)
 		}
 
 		pl.Inventory = inventory
@@ -1041,7 +1037,7 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 			}
 		}
 
-		proj.WeaponInstance = getLastThrownGrenade(proj.Thrower, wep, p.demoInfoProvider)
+		proj.WeaponInstance = p.thrownGrenadeInstance(proj.Thrower, wep)
 
 		unassert.NotNilf(proj.WeaponInstance, "couldn't find grenade instance for player")
 		if proj.WeaponInstance != nil {
@@ -1056,8 +1052,7 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 
 		if wep == common.EqFlash {
 			p.gameState.flyingFlashbangs = append(p.gameState.flyingFlashbangs, &FlyingFlashbang{
-				projectile:       proj,
-				flashedEntityIDs: []int{},
+				projectile: proj,
 			})
 		}
 
@@ -1089,12 +1084,7 @@ func (p *parser) bindGrenadeProjectiles(entity st.Entity) {
 				},
 			})
 
-			if len(p.gameState.flyingFlashbangs) == 0 {
-				return
-			}
-
-			flashbang := p.gameState.flyingFlashbangs[0]
-			flashbang.explodedFrame = p.currentFrame
+			p.markFlashDetonated(proj)
 		}
 
 		p.nadeProjectileDestroyed(proj)
@@ -1177,9 +1167,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 	wepType := common.EquipmentIndexMapping[itemIndex]
 
 	if wepType == common.EqUnknown {
-		fmt.Fprintln(os.Stderr, "unknown equipment with index", itemIndex)
-
-		p.msgDispatcher.Dispatch(events.ParserWarn{
+		p.eventDispatcher.Dispatch(events.ParserWarn{
 			Message: fmt.Sprintf("unknown equipment with index %d", itemIndex),
 			Type:    events.WarnTypeUnknownEquipmentIndex,
 		})
@@ -1261,6 +1249,7 @@ func (p *parser) bindWeaponS2(entity st.Entity) {
 
 		prevOwner := equipment.Owner
 		equipment.Owner = owner
+		p.gameState.rememberGrenadeWeapon(owner, equipment)
 
 		if owner == nil {
 			p.eventDispatcher.Dispatch(events.ItemDroped{
@@ -1826,4 +1815,16 @@ func (p *parser) getClosestBombsiteFromPosition(position r3.Vector) events.Bombs
 	}
 
 	return events.BombsiteB
+}
+
+// Identify the destroyed projectile itself, even if other flashes were thrown earlier.
+func (p *parser) markFlashDetonated(proj *common.GrenadeProjectile) {
+	for _, flash := range p.gameState.flyingFlashbangs {
+		if flash.projectile == proj {
+			flash.detonated = true
+			flash.explodedFrame = p.currentFrame
+			flash.position = proj.Position()
+			return
+		}
+	}
 }

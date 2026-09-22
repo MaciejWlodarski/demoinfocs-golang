@@ -150,3 +150,31 @@ Weryfikacja: wszystkie krótkie testy z race PASS; golden obu dem PASS; pełny k
 | CI, dokumentacja, przykłady, pozostałe testy upstreamu | Inwentarz istnieje; nie jest to kompletne odtworzenie infrastruktury upstreamu |
 
 Git nadal może pokazywać 319 commitów upstream-only względem starej wspólnej bazy: backporty zapisano jako nowe lokalne commity, bez dopisywania nieprzeniesionej historii upstreamu jako przodka. Liczba ta nie mierzy ilości już przeniesionego kodu. Branch nie został wypchnięty, a przypięcie parsera w aplikacji nie zostało zmienione.
+
+**Etap 4: przypisywanie flashów, granatów, atakującego i ostrzeżenia**
+
+Źródła: `4126b7b` (flashe), `f06cb5a` (attacker_pawn), `30fcf79` (brakujące Entity/Owner granatu), `6248488` (dispatcher ostrzeżeń). Adaptacje zachowują własny FakePlayerFlashed z Duration i pierwszeństwo LastThrownGrenade.
+
+- Flashe: ofiary są buforowane w obrębie klatki i dopasowywane do pocisku, który rzeczywiście eksplodował. Pusty wybuch nie usuwa innego granatu. Jawny znacznik detonacji odróżnia niewybuchnięty flash od wybuchu w klatce 0. Jeśli kilka flashów wybucha jednocześnie, najbliższa pozycja jest heurystyką upstreamu — nie dowodem fizycznej przyczynowości.
+- PlayerHurt: brakujący atakujący jest szukany po attacker_pawn; rozpoznany user ID ma pierwszeństwo. Bez zmiany klasyfikacji obrażeń, ich wartości i kolejności.
+- Granaty: ostatnio znana encja broni jest zapamiętywana przy zmianach ekwipunku lub właściciela, bez skanowania wszystkich graczy co tick. Snapshot chroni przed późniejszym nadpisaniem Owner/State. Używany tylko gdy dotychczasowa ścieżka LastThrownGrenade nie ma encji; kopia WeaponInstance ma właściciela zgodnego z rzucającym. Zapamiętana encja może być już zniszczona, jeśli usunięto ją z ekwipunku przed utworzeniem pocisku.
+- Ostrzeżenia o nieznanym wyposażeniu trafiają do eventDispatcher. Ten sam problem naprawiono dla nieznanych wiadomości protobuf, ale przez kolejkę msgQueue: bezpośrednie wywołanie eventDispatcher z goroutine odczytu powodowało równoległe callbacki i zostało odrzucone podczas testów.
+
+**Rozliczenie zmian wyników**
+
+Zachowano wcześniejsze wzorce w `pkg/demoinfocs/testdata/gotv/before-event-backports/`. Nowe oczekiwania wprowadzono dopiero po porównaniu pełnych JSON-ów i śladu wszystkich 657 rzutów na Mirage. Zapis dowodów: `pkg/demoinfocs/testdata/gotv/event-backports-evidence.json`.
+
+| Wynik | Zmiana |
+|---|---|
+| Mirage, tick 237119, pocisk 522, smoke gracza 76561198724978523 | WeaponInstance: brak encji/Owner i EntityId=0 → encja 167 i właściwy Owner. ItemNewOwner w ticku 232403 potwierdza właściciela encji 167; jej sieciowe m_flThrowStrength wynosi 1 |
+| Pełny JSON aplikacji na Mirage | Dokładnie jedno pole: rounds[29].events.grenades[27].throw_strength: 0 → 1. Indeks granatu aplikacji 1062 nie jest ID encji pocisku |
+| Pełny JSON aplikacji na Anubisie | Bez zmian |
+| Pozostałe 656 rzutów na Mirage | Bez zmian w śladzie tick/pocisk/typ/encja/Owner/rzucający/siła |
+| Golden biblioteki | Zmieniony tylko hash GrenadeProjectileThrow na Mirage (EntityId odzyskanej broni) oraz nowe liczniki ParserWarn; pozostałe hashe, wyniki, klatki i liczniki eventów bez zmian |
+| Nowo widoczne ParserWarn | 74 na Mirage, 42 na Anubisie, wszystkie dla dotychczas pomijanej wiadomości 389 / CS_UM_WeaponMagDrop. Sama obsługa tej wiadomości nie została dodana |
+
+W obu demach nie wystąpiła zmiana wyników flashowania ani PlayerHurt. Test niezależny od hashy potwierdził zgodność 364 FakePlayerFlashed na Mirage i 192 na Anubisie z rzeczywistymi wybuchami tych samych pocisków i rzucających w tej samej klatce. Przypadki naprawiane poza tym korpusem pokrywają testy syntetyczne: wybuch poza kolejnością, wybuch bez ofiar, oba porządki aktualizacji w klatce, wiele wybuchów naraz, klatka 0, brak user ID, nieznany pawn handle, snapshot granatu po usunięciu i dostarczanie obu kategorii ostrzeżeń.
+
+Weryfikacja: krótkie testy z race PASS; oba testy GOTV (golden i niezależne przypisanie) po dwa przebiegi PASS; pełne wyniki konsumenta PASS względem przejrzanych oczekiwań. Nie usuwano żadnych pól przy porównaniu JSON. Oryginalny projekt konsumenta i przypięcie jego biblioteki pozostają bez zmian.
+
+Dodatkowy pełny przebieg Mirage z `-race`, obejmujący nowe ostrzeżenia i porównanie golden: PASS (132,744 s). `git diff --check`: PASS.

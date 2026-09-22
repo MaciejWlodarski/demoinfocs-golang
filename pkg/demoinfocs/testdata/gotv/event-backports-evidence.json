@@ -1,0 +1,58 @@
+{
+  "baseline_commit": "75f5e87",
+  "original_baseline_commit": "d170961",
+  "grenade_trace_source": "657 Mirage throws compared against clean d170961; all unchanged except listed record",
+  "grenade_changes": [
+    {
+      "before": {
+        "entity": false,
+        "owner": 0,
+        "projectile": 522,
+        "strength": 0,
+        "thrower": 76561198724978523,
+        "tick": 237119,
+        "type": 505,
+        "weapon": 0
+      },
+      "after": {
+        "entity": true,
+        "owner": 76561198724978523,
+        "projectile": 522,
+        "strength": 1,
+        "thrower": 76561198724978523,
+        "tick": 237119,
+        "type": 505,
+        "weapon": 167
+      }
+    }
+  ],
+  "consumer_changes": {
+    "demo1": [
+      [
+        "/rounds/29/events/grenades/27/throw_strength",
+        0,
+        1
+      ]
+    ],
+    "demo2": []
+  },
+  "newly_delivered_warnings": {
+    "type": "WarnTypeUnknownProtobufMessage",
+    "message_type": 389,
+    "name": "CS_UM_WeaponMagDrop",
+    "demo1": 74,
+    "demo2": 42
+  },
+  "flash_events_matched_same_frame_detonation": {
+    "demo1": 364,
+    "demo2": 192
+  },
+  "unchanged_golden_digests": "All except Mirage GrenadeProjectileThrow (recovered weapon entity ID).",
+  "recovered_weapon_ownership": {
+    "entity_id": 167,
+    "owner": 76561198724978523,
+    "observed_item_new_owner_tick": 232403,
+    "projectile_tick": 237119,
+    "network_throw_strength": 1
+  }
+}

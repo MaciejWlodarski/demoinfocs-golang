@@ -66,7 +66,6 @@
     "MoneyUpdate": 1636,
     "OtherDeath": 56,
     "OvertimeNumberChanged": 1,
-    "ParserWarn": 42,
     "PlayerConnect": 11,
     "PlayerDisconnected": 11,
     "PlayerFlashed": 192,
@@ -95,9 +94,7 @@
     "WeaponFire": 3007,
     "WeaponZoom": 167
   },
-  "Warnings": {
-    "11:unknown message type: 389": 42
-  },
+  "Warnings": {},
   "Digests": {
     "AliveSamples": "935985285cdd9324fda5d83d959c2e127fc09bd0a8c7e55e227211b077ad6b4c",
     "ArmorUpdate": "436020855f30b8b274a37e55ddf10312b25e51891694e0db5bbfa8b53f828c24",

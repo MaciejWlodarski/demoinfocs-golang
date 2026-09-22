@@ -15,6 +15,7 @@ import (
 
 	bit "github.com/markus-wa/demoinfocs-golang/v4/internal/bitread"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/common"
+	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/events"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/msgs2"
 	st "github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables"
 	"github.com/markus-wa/demoinfocs-golang/v4/pkg/demoinfocs/sendtables2"
@@ -431,6 +432,9 @@ func NewParserWithConfig(demostream io.Reader, config ParserConfig) Parser {
 	p.msgDispatcher.RegisterHandler(p.handleClassInfo)
 	p.msgDispatcher.RegisterHandler(p.handleStringTables)
 	p.msgDispatcher.RegisterHandler(p.handleFrameParsed)
+	// Warnings produced while reading packets must share the event-processing
+	// queue, so event consumers are not called concurrently from the reader.
+	p.msgDispatcher.RegisterHandler(func(w events.ParserWarn) { p.eventDispatcher.Dispatch(w) })
 
 	if config.MsgQueueBufferSize >= 0 {
 		p.initMsgQueue(config.MsgQueueBufferSize)
