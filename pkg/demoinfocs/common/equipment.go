@@ -474,6 +474,9 @@ func (e *Equipment) Silenced() bool {
 	}
 
 	prop := e.Entity.Property("m_bSilencerOn")
+	if prop == nil {
+		return false
+	}
 
 	return prop.Value().BoolVal()
 }

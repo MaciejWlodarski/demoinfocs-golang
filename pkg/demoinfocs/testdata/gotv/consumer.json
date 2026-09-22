@@ -1,0 +1,20 @@
+{
+  "fork_baseline_commit": "d170961168e981a53e99e55e9722d4e56def2f0b",
+  "consumer_pinned_commit": "bdfe88762418",
+  "consumer_source_sha256": "0b7b4239d37c8521ae8ab2c4c839b9db63599a4d4f2f9514adf555bdc829f2e8",
+  "maps": {
+    "de_mirage.kdtree": "3c7f74802dfa75e35e650b70b4cdc5ed9cb23810eed57b7ad51df7dea1a1c84f"
+  },
+  "demos": {
+    "demo1": {
+      "demo_sha256": "93056dedad655bfd25d3ddf9520e5f597fbf2c5c54ba8cc8a46c5ad23d29b473",
+      "current_output_sha256": "aeb77b93a09bffe58d1cce3ceee0b994b3898ee9127fda8275e58383a09b99ab",
+      "pinned_output_sha256": "d1da4acfb7a4a35b0471da48fd8e8e4cefb9a6ffd1de78785ca0e5543322bd45"
+    },
+    "demo2": {
+      "demo_sha256": "b8c52c1a09a5dddc4bd7c493799f23705c6fe54c3910c92043ba44e58f82e22e",
+      "current_output_sha256": "feccad0d64014b71c28271f335065a48a46b461832ec7eefc7d7f7eaab5cffef",
+      "pinned_output_sha256": "0c4332ba92db748d8ee7ae9a3adbd567df87a8da53a944adb951deb07b310891"
+    }
+  }
+}

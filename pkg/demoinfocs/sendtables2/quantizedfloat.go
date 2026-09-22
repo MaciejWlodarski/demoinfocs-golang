@@ -8,10 +8,12 @@ import (
 )
 
 // Quantized float flags
-const qff_rounddown uint32 = (1 << 0)
-const qff_roundup uint32 = (1 << 1)
-const qff_encode_zero uint32 = (1 << 2)
-const qff_encode_integers uint32 = (1 << 3)
+const (
+	qffRounddown      uint32 = (1 << 0)
+	qffRoundup        uint32 = (1 << 1)
+	qffEncodeZero     uint32 = (1 << 2)
+	qffEncodeIntegers uint32 = (1 << 3)
+)
 
 // Quantized-decoder struct containing the computed properties
 type quantizedFloatDecoder struct {
@@ -33,33 +35,33 @@ func (qfd *quantizedFloatDecoder) validateFlags() {
 	}
 
 	// Discard zero flag when encoding min / max set to 0
-	if (qfd.Low == 0.0 && (qfd.Flags&qff_rounddown) != 0) || (qfd.High == 0.0 && (qfd.Flags&qff_roundup) != 0) {
-		qfd.Flags &= ^qff_encode_zero
+	if (qfd.Low == 0.0 && (qfd.Flags&qffRounddown) != 0) || (qfd.High == 0.0 && (qfd.Flags&qffRoundup) != 0) {
+		qfd.Flags &= ^qffEncodeZero
 	}
 
 	// If min / max is zero when encoding zero, switch to round up / round down instead
-	if qfd.Low == 0.0 && (qfd.Flags&qff_encode_zero) != 0 {
-		qfd.Flags |= qff_rounddown
-		qfd.Flags &= ^qff_encode_zero
+	if qfd.Low == 0.0 && (qfd.Flags&qffEncodeZero) != 0 {
+		qfd.Flags |= qffRounddown
+		qfd.Flags &= ^qffEncodeZero
 	}
 
-	if qfd.High == 0.0 && (qfd.Flags&qff_encode_zero) != 0 {
-		qfd.Flags |= qff_roundup
-		qfd.Flags &= ^qff_encode_zero
+	if qfd.High == 0.0 && (qfd.Flags&qffEncodeZero) != 0 {
+		qfd.Flags |= qffRoundup
+		qfd.Flags &= ^qffEncodeZero
 	}
 
 	// Check if the range spans zero
 	if qfd.Low > 0.0 || qfd.High < 0.0 {
-		qfd.Flags &= ^qff_encode_zero
+		qfd.Flags &= ^qffEncodeZero
 	}
 
 	// If we are left with encode zero, only leave integer flag
-	if (qfd.Flags & qff_encode_integers) != 0 {
-		qfd.Flags &= ^(qff_roundup | qff_rounddown | qff_encode_zero)
+	if (qfd.Flags & qffEncodeIntegers) != 0 {
+		qfd.Flags &= ^(qffRoundup | qffRounddown | qffEncodeZero)
 	}
 
 	// Verify that we don;t have roundup / rounddown set
-	if qfd.Flags&(qff_rounddown|qff_roundup) == (qff_rounddown | qff_roundup) {
+	if qfd.Flags&(qffRounddown|qffRoundup) == (qffRounddown | qffRoundup) {
 		_panicf("Roundup / Rounddown are mutually exclusive")
 	}
 }
@@ -87,7 +89,6 @@ func (qfd *quantizedFloatDecoder) assignMultipliers(steps uint32) {
 
 	// Adjust precision
 	if (HighMul*Range > float32(High)) || (float64(HighMul*Range) > float64(High)) {
-
 		for _, mult := range qFloatMultipliers {
 			HighMul = float32(High) / Range * mult
 
@@ -110,42 +111,49 @@ func (qfd *quantizedFloatDecoder) assignMultipliers(steps uint32) {
 // Quantize a float
 func (qfd *quantizedFloatDecoder) quantize(val float32) float32 {
 	if val < qfd.Low {
-		if (qfd.Flags & qff_roundup) == 0 {
+		if (qfd.Flags & qffRoundup) == 0 {
 			_panicf("Field tried to quantize an out of range value")
 		}
 
 		return qfd.Low
 	} else if val > qfd.High {
-		if (qfd.Flags & qff_rounddown) == 0 {
+		if (qfd.Flags & qffRounddown) == 0 {
 			_panicf("Field tried to quantize an out of range value")
 		}
 
 		return qfd.High
 	}
 
-	i := uint32((val - qfd.Low) * qfd.HighLowMul)
-	//nolint:unconvert
+	// Round to nearest like the engine's encoder does. Truncating here can
+	// wrongly keep a round-up/round-down/encode-zero special flag that the
+	// encoder discarded (e.g. bits=10 low=0 high=102.3 gives raw 1022.99994,
+	// which must quantize to 1023 so the round-up flag is removed), making the
+	// decoder read a phantom flag bit and desync the entity stream.
+	i := uint32(float32((val-qfd.Low)*qfd.HighLowMul) + 0.5)
+
 	return qfd.Low + float32((qfd.High-qfd.Low)*float32(float32(i)*qfd.DecMul))
 }
 
 // Actual float decoding
 func (qfd *quantizedFloatDecoder) decode(r *reader) float32 {
-	if (qfd.Flags&qff_rounddown) != 0 && r.readBoolean() {
+	if (qfd.Flags&qffRounddown) != 0 && r.readBoolean() {
 		return qfd.Low
 	}
 
-	if (qfd.Flags&qff_roundup) != 0 && r.readBoolean() {
+	if (qfd.Flags&qffRoundup) != 0 && r.readBoolean() {
 		return qfd.High
 	}
 
-	if (qfd.Flags&qff_encode_zero) != 0 && r.readBoolean() {
+	if (qfd.Flags&qffEncodeZero) != 0 && r.readBoolean() {
 		return 0.0
 	}
 
-	return qfd.Low + (qfd.High-qfd.Low)*float32(r.readBits(qfd.Bitcount))*qfd.DecMul
+	return qfd.Low + float32((qfd.High-qfd.Low)*float32(r.readBits(qfd.Bitcount))*qfd.DecMul)
 }
 
 // Creates a new quantized float decoder based on given field
+//
+//nolint:funlen
 func newQuantizedFloatDecoder(bitCount, flags *int32, lowValue, highValue *float32) *quantizedFloatDecoder {
 	qfd := &quantizedFloatDecoder{}
 
@@ -153,24 +161,26 @@ func newQuantizedFloatDecoder(bitCount, flags *int32, lowValue, highValue *float
 	if *bitCount == 0 || *bitCount >= 32 {
 		qfd.NoScale = true
 		qfd.Bitcount = 32
+
 		return qfd
-	} else {
-		qfd.NoScale = false
-		qfd.Bitcount = uint32(*bitCount)
-		qfd.Offset = 0.0
-
-		if lowValue != nil {
-			qfd.Low = *lowValue
-		} else {
-			qfd.Low = 0.0
-		}
-
-		if highValue != nil {
-			qfd.High = *highValue
-		} else {
-			qfd.High = 1.0
-		}
 	}
+
+	qfd.NoScale = false
+	qfd.Bitcount = uint32(*bitCount)
+	qfd.Offset = 0.0
+
+	if lowValue != nil {
+		qfd.Low = *lowValue
+	} else {
+		qfd.Low = 0.0
+	}
+
+	if highValue != nil {
+		qfd.High = *highValue
+	} else {
+		qfd.High = 1.0
+	}
+
 	if flags != nil {
 		qfd.Flags = uint32(*flags)
 	} else {
@@ -184,18 +194,18 @@ func newQuantizedFloatDecoder(bitCount, flags *int32, lowValue, highValue *float
 	steps := (1 << uint(qfd.Bitcount))
 
 	Range := float32(0)
-	if (qfd.Flags & qff_rounddown) != 0 {
+	if (qfd.Flags & qffRounddown) != 0 {
 		Range = qfd.High - qfd.Low
 		qfd.Offset = (Range / float32(steps))
 		qfd.High -= qfd.Offset
-	} else if (qfd.Flags & qff_roundup) != 0 {
+	} else if (qfd.Flags & qffRoundup) != 0 {
 		Range = qfd.High - qfd.Low
 		qfd.Offset = (Range / float32(steps))
 		qfd.Low += qfd.Offset
 	}
 
 	// Handle integer encoding flag
-	if (qfd.Flags & qff_encode_integers) != 0 {
+	if (qfd.Flags & qffEncodeIntegers) != 0 {
 		delta := qfd.High - qfd.Low
 
 		if delta < 1 {
@@ -206,12 +216,8 @@ func newQuantizedFloatDecoder(bitCount, flags *int32, lowValue, highValue *float
 		Range2 := (1 << uint(deltaLog2))
 		bc := qfd.Bitcount
 
-		for {
-			if (1 << uint(bc)) > Range2 {
-				break
-			} else {
-				bc++
-			}
+		for (1 << uint(bc)) <= Range2 {
+			bc++
 		}
 
 		if bc > qfd.Bitcount {
@@ -227,21 +233,21 @@ func newQuantizedFloatDecoder(bitCount, flags *int32, lowValue, highValue *float
 	qfd.assignMultipliers(uint32(steps))
 
 	// Remove unessecary flags
-	if (qfd.Flags & qff_rounddown) != 0 {
+	if (qfd.Flags & qffRounddown) != 0 {
 		if qfd.quantize(qfd.Low) == qfd.Low {
-			qfd.Flags &= ^qff_rounddown
+			qfd.Flags &= ^qffRounddown
 		}
 	}
 
-	if (qfd.Flags & qff_roundup) != 0 {
+	if (qfd.Flags & qffRoundup) != 0 {
 		if qfd.quantize(qfd.High) == qfd.High {
-			qfd.Flags &= ^qff_roundup
+			qfd.Flags &= ^qffRoundup
 		}
 	}
 
-	if (qfd.Flags & qff_encode_zero) != 0 {
+	if (qfd.Flags & qffEncodeZero) != 0 {
 		if qfd.quantize(0.0) == 0.0 {
-			qfd.Flags &= ^qff_encode_zero
+			qfd.Flags &= ^qffEncodeZero
 		}
 	}
 

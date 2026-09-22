@@ -6,8 +6,6 @@ import (
 	"sync"
 )
 
-var huffTree = newHuffmanTree()
-
 type fieldPath struct {
 	path []int
 	last int
@@ -168,6 +166,7 @@ var fieldPathTable = []fieldPathOp{
 	}},
 	{"PushN", 0, func(r *reader, fp *fieldPath) {
 		n := int(r.readUBitVar())
+
 		fp.path[fp.last] += int(r.readUBitVar())
 		for i := 0; i < n; i++ {
 			fp.last++
@@ -180,6 +179,7 @@ var fieldPathTable = []fieldPathOp{
 				fp.path[i] += int(r.readVarInt32()) + 1
 			}
 		}
+
 		count := int(r.readUBitVar())
 		for i := 0; i < count; i++ {
 			fp.last++
@@ -220,6 +220,7 @@ var fieldPathTable = []fieldPathOp{
 	}},
 	{"PopNAndNonTopographical", 1, func(r *reader, fp *fieldPath) {
 		fp.pop(r.readUBitVarFieldPath())
+
 		for i := 0; i <= fp.last; i++ {
 			if r.readBoolean() {
 				fp.path[i] += int(r.readVarInt32())
@@ -262,6 +263,7 @@ func (fp *fieldPath) copy() *fieldPath {
 	copy(x.path, fp.path)
 	x.last = fp.last
 	x.done = fp.done
+
 	return x
 }
 
@@ -271,6 +273,7 @@ func (fp *fieldPath) String() string {
 	for i := 0; i <= fp.last; i++ {
 		ss[i] = strconv.Itoa(fp.path[i])
 	}
+
 	return strings.Join(ss, "/")
 }
 
@@ -278,11 +281,12 @@ func (fp *fieldPath) String() string {
 func newFieldPath() *fieldPath {
 	fp := fpPool.Get().(*fieldPath)
 	fp.reset()
+
 	return fp
 }
 
 var fpPool = &sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &fieldPath{
 			path: make([]int, 7),
 			last: 0,
@@ -305,41 +309,63 @@ func (fp *fieldPath) release() {
 	fpPool.Put(fp)
 }
 
-// readFieldPaths reads a new slice of fieldPath values from the given reader
+// readFieldPaths reads a new slice of fieldPath values from the given reader.
+//
+// Decoding uses a peek table over the huffman tree: the next fpHuffBits bits
+// are peeked and looked up in fpHuffLUT. Entries covering codes shorter than
+// fpHuffBits are replicated across the unused high bits, so one lookup fully
+// resolves short codes; longer codes resolve through the table to a tree node
+// and continue the per-bit walk from there.
 func readFieldPaths(r *reader, paths *[]*fieldPath) int {
 	fp := newFieldPath()
-	node := huffTree
 	i := 0
+	node := int16(0) // root is always index 0 in fpHuffNodes
 
 	for !fp.done {
-		var next huffmanTree
+		lut := &fpHuffLUT[r.peekBits(fpHuffBits)]
+		node = lut.node
+		r.skipBits(lut.consumed)
 
-		if r.readBoolean() {
-			next = node.Right()
-		} else {
-			next = node.Left()
+		op := int16(-1)
+		for op < 0 {
+			if node < 0 {
+				// leaf resolved by the LUT (encoded as marker|~op)
+				op = ^node
+
+				break
+			}
+
+			var next int16
+			if r.readBoolean() {
+				next = fpHuffNodes[node].right
+			} else {
+				next = fpHuffNodes[node].left
+			}
+
+			if fpHuffNodes[next].left < 0 {
+				// leaf reached by the per-bit walk
+				op = fpHuffNodes[next].value
+
+				break
+			}
+
+			node = next
 		}
 
-		if next.IsLeaf() {
-			node = huffTree
+		fieldPathTable[op].fn(r, fp)
 
-			fieldPathTable[next.Value()].fn(r, fp)
-
-			if !fp.done {
-				if len(*paths) <= i {
-					*paths = append(*paths, fp.copy())
-				} else {
-					x := (*paths)[i]
-					x.last = fp.last
-					x.done = fp.done
-
-					copy(x.path, fp.path)
-				}
-
-				i++
+		if !fp.done {
+			if len(*paths) <= i {
+				*paths = append(*paths, fp.copy())
+			} else {
+				x := (*paths)[i]
+				x.last = fp.last
+				x.done = fp.done
+				// Only copy the active portion of the path
+				copy(x.path[:fp.last+1], fp.path[:fp.last+1])
 			}
-		} else {
-			node = next
+
+			i++
 		}
 	}
 
@@ -354,5 +380,6 @@ func newHuffmanTree() huffmanTree {
 	for i, op := range fieldPathTable {
 		freqs[i] = op.weight
 	}
+
 	return buildHuffmanTree(freqs)
 }

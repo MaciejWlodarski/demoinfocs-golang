@@ -58,9 +58,9 @@ type tuple struct {
 
 type Parser struct {
 	serializers                 map[string]*serializer
-	classIdSize                 uint32
+	classIdSize                 uint32 //nolint:revive
 	classBaselines              map[int32][]byte
-	classesById                 map[int32]*class
+	classesById                 map[int32]*class //nolint:revive
 	classesByName               map[string]*class
 	entityFullPackets           int
 	entities                    map[int32]*Entity
@@ -68,6 +68,12 @@ type Parser struct {
 	pathCache                   []*fieldPath
 	tuplesCache                 []tuple
 	packetEntitiesPanicWarnFunc func(error)
+	// nextPolyID is a global counter for assigning unique polySerializerIDs to
+	// polymorphic fixed-table fields as they are encountered during ParsePacket.
+	nextPolyID int
+	// polyMaxCache memoizes, per serializer, the highest polySerializerID
+	// reachable from it. Used to size per-class polySerializers slices.
+	polyMaxCache map[*serializer]int
 }
 
 func (p *Parser) ReadEnterPVS(r *bit.BitReader, index int, entities map[int]st.Entity, slot int) st.Entity {
@@ -118,6 +124,7 @@ func NewParser(packetEntitiesPanicWarnFunc func(error)) *Parser {
 		classesById:                 make(map[int32]*class),
 		classesByName:               make(map[string]*class),
 		entities:                    make(map[int32]*Entity),
+		polyMaxCache:                make(map[*serializer]int),
 		packetEntitiesPanicWarnFunc: packetEntitiesPanicWarnFunc,
 	}
 }
@@ -132,18 +139,29 @@ func (p *Parser) OnServerInfo(m *msgs2.CSVCMsg_ServerInfo) error {
 
 func (p *Parser) OnDemoClassInfo(m *msgs2.CDemoClassInfo) error {
 	for _, c := range m.GetClasses() {
-		classId := c.GetClassId()
+		classID := c.GetClassId()
 		networkName := c.GetNetworkName()
 
-		class := &class{
-			classId:    classId,
-			name:       networkName,
-			serializer: p.serializers[networkName],
-			fpNameCache: &fpNameTreeCache{
-				next: make(map[int]*fpNameTreeCache),
-			},
+		// Size the per-entity polySerializers slice to the highest polymorphic
+		// serializer ID reachable from this class's serializer, so entities of
+		// classes without polymorphic fields stay on the shared fast paths.
+		polyCount := 0
+
+		if ser := p.serializers[networkName]; ser != nil {
+			if maxID := ser.maxPolyID(p.polyMaxCache); maxID >= 0 {
+				polyCount = maxID + 1
+			}
 		}
-		p.classesById[class.classId] = class
+
+		class := &class{
+			classID:     classID,
+			name:        networkName,
+			serializer:  p.serializers[networkName],
+			polyCount:   polyCount,
+			fpNameCache: &fpNameTreeCache{},
+			fpFlatCache: make(map[uint64]string),
+		}
+		p.classesById[class.classID] = class
 		p.classesByName[class.name] = class
 	}
 
@@ -161,9 +179,11 @@ func (p *Parser) SetInstanceBaseline(scID int, data []byte) {
 	p.classBaselines[int32(scID)] = data
 }
 
+//nolint:gocognit,funlen
 func (p *Parser) ParsePacket(b []byte) error {
 	r := newReader(b)
 	buf := r.readBytes(r.readVarUint32())
+	r.release()
 
 	msg := &msgs2.CSVCMsg_FlattenedSerializer{}
 	if err := proto.Unmarshal(buf, msg); err != nil {
@@ -180,19 +200,15 @@ func (p *Parser) ParsePacket(b []byte) error {
 		)
 
 		for _, i := range s.GetFieldsIndex() {
-			if _, ok := fields[i]; !ok {
+			if _, ok := fields[i]; !ok { //nolint:nestif
 				// create a new field
 				field := newField(p.serializers, msg, msg.GetFields()[i])
-
-				// dotabuff/manta patches parent name in builds <= 990
-				// if p.gameBuild <= 990 {
-				//	field.parentName = serializer.name
-				//}
 
 				// find or create a field type
 				if _, ok := fieldTypes[field.varType]; !ok {
 					fieldTypes[field.varType] = newFieldType(field.varType)
 				}
+
 				field.fieldType = fieldTypes[field.varType]
 
 				// find associated serializer
@@ -206,17 +222,25 @@ func (p *Parser) ParsePacket(b []byte) error {
 				}
 
 				// determine field model
-				if field.serializer != nil {
-					if field.fieldType.pointer || pointerTypes[field.fieldType.baseType] {
+				switch {
+				case field.serializer != nil || len(field.polyTypes) > 0:
+					if field.fieldType.pointer || pointerTypes[field.fieldType.baseType] || len(field.polyTypes) > 0 {
+						if len(field.polyTypes) > 0 {
+							// Assign a unique per-entity slot BEFORE calling setModel,
+							// so the closure in setModel captures the correct ID.
+							field.polySerializerID = p.nextPolyID
+							p.nextPolyID++
+						}
+
 						field.setModel(fieldModelFixedTable)
 					} else {
 						field.setModel(fieldModelVariableTable)
 					}
-				} else if field.fieldType.count > 0 && field.fieldType.baseType != "char" {
+				case field.fieldType.count > 0 && field.fieldType.baseType != "char":
 					field.setModel(fieldModelFixedArray)
-				} else if field.fieldType.baseType == "CUtlVector" || field.fieldType.baseType == "CNetworkUtlVectorBase" {
+				case field.fieldType.baseType == "CUtlVector" || field.fieldType.baseType == "CNetworkUtlVectorBase":
 					field.setModel(fieldModelVariableArray)
-				} else {
+				default:
 					field.setModel(fieldModelSimple)
 				}
 
@@ -231,8 +255,16 @@ func (p *Parser) ParsePacket(b []byte) error {
 		// store the serializer for field reference
 		p.serializers[serializer.name] = serializer
 
-		if _, ok := p.classesByName[serializer.name]; ok {
-			p.classesByName[serializer.name].serializer = serializer
+		if c, ok := p.classesByName[serializer.name]; ok {
+			// The full reachable graph of this serializer is resolved by now
+			// (fields can only reference previously parsed serializers), so it's
+			// safe to back-patch both the serializer and the poly slot count for
+			// classes whose CDemoClassInfo arrived before this FSV packet.
+			c.serializer = serializer
+
+			if maxID := serializer.maxPolyID(p.polyMaxCache); maxID >= 0 {
+				c.polyCount = maxID + 1
+			}
 		}
 	}
 

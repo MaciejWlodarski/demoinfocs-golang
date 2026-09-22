@@ -4,8 +4,40 @@ import (
 	"math"
 )
 
-type fieldDecoder func(*reader) interface{}
-type fieldFactory func(*field) fieldDecoder
+// simTimeCache holds pre-boxed any values for simulationTimeDecoder.
+// CS2 runs at 64 tick; a 68-minute match produces ~262143 ticks, so 1<<18 covers all
+// realistic demos without needing a heap allocation for any tick value.
+const simTimeCacheLen = 1 << 18 // 262144
+
+var simTimeCache [simTimeCacheLen]any
+
+// runeTimeCache holds pre-boxed any values for runeTimeDecoder.
+// readBits(4) produces only 16 distinct values.
+var runeTimeCache [16]any
+
+// smallUintCache holds pre-boxed uint64 any values for unsignedDecoder.
+// On a real CS2 demo ~83% of decoded unsigned values are < 1024 (handles,
+// counters, bools-as-ints), so a table hit avoids the uint64 boxing alloc.
+var smallUintCache [1024]any
+
+func init() {
+	for i := range simTimeCache {
+		simTimeCache[i] = float32(i) * (1.0 / 64)
+	}
+
+	for i := range runeTimeCache {
+		runeTimeCache[i] = math.Float32frombits(uint32(i))
+	}
+
+	for i := range smallUintCache {
+		smallUintCache[i] = uint64(i)
+	}
+}
+
+type (
+	fieldDecoder func(*reader) any
+	fieldFactory func(*field) fieldDecoder
+)
 
 var fieldTypeFactories = map[string]fieldFactory{
 	/*
@@ -236,10 +268,10 @@ var fieldTypeDecoders = map[string]fieldDecoder{
 }
 
 func unsigned64Factory(f *field) fieldDecoder {
-	switch f.encoder {
-	case "fixed64":
+	if f.encoder == "fixed64" {
 		return fixed64Decoder
 	}
+
 	return unsigned64Decoder
 }
 
@@ -267,8 +299,18 @@ func quantizedFactory(f *field) fieldDecoder {
 
 	qfd := newQuantizedFloatDecoder(f.bitCount, f.encodeFlags, f.lowValue, f.highValue)
 
-	return func(r *reader) interface{} {
-		return qfd.decode(r)
+	return func(r *reader) any {
+		v := qfd.decode(r)
+
+		// Route through the reader's boxed-value cache: quantized values repeat
+		// heavily across ticks (positions of stationary players etc.), so a
+		// cache hit avoids the float32 boxing allocation.
+		bits := math.Float32bits(v)
+		if bits == 0 {
+			return float32(0)
+		}
+
+		return r.cachedFloat32(bits)
 	}
 }
 
@@ -279,9 +321,15 @@ func vectorFactory(n int) fieldFactory {
 		}
 
 		d := floatFactory(f)
-		return func(r *reader) interface{} {
-			x := make([]float32, n)
 
+		if n == 3 {
+			return func(r *reader) any {
+				return []float32{d(r).(float32), d(r).(float32), d(r).(float32)}
+			}
+		}
+
+		return func(r *reader) any {
+			x := make([]float32, n)
 			for i := 0; i < n; i++ {
 				x[i] = d(r).(float32)
 			}
@@ -291,65 +339,85 @@ func vectorFactory(n int) fieldFactory {
 	}
 }
 
-func vectorNormalDecoder(r *reader) interface{} {
-	return r.read3BitNormal()
+func vectorNormalDecoder(r *reader) any {
+	return r.vectorValue(r.read3BitNormal())
 }
 
-func fixed64Decoder(r *reader) interface{} {
+func fixed64Decoder(r *reader) any {
 	return r.readLeUint64()
 }
 
-func handleDecoder(r *reader) interface{} {
-	return r.readVarUint32()
-}
-
-func booleanDecoder(r *reader) interface{} {
+func booleanDecoder(r *reader) any {
 	return r.readBoolean()
 }
 
-func stringDecoder(r *reader) interface{} {
+func stringDecoder(r *reader) any {
 	return r.readString()
 }
 
-func binaryBlockDecoder(r *reader) interface{} {
+func binaryBlockDecoder(r *reader) any {
 	n := r.readVarUint32()
 	return r.readBytes(n)
 }
 
-func defaultDecoder(r *reader) interface{} {
+func defaultDecoder(r *reader) any {
 	return r.readVarUint32()
 }
 
-func signedDecoder(r *reader) interface{} {
+func signedDecoder(r *reader) any {
 	return r.readVarInt32()
 }
 
-func floatCoordDecoder(r *reader) interface{} {
+func floatCoordDecoder(r *reader) any {
 	return r.readCoord()
 }
 
-func ammoDecoder(r *reader) interface{} {
+func ammoDecoder(r *reader) any {
 	return r.readVarUint32() - 1
 }
 
-func noscaleDecoder(r *reader) interface{} {
-	return math.Float32frombits(r.readLeUint32())
+func noscaleFloat32(r *reader) float32 {
+	bits := r.readLeUint32()
+	if bits == 0 {
+		return 0
+	}
+
+	return r.cachedFloat32(bits).(float32)
 }
 
-func runeTimeDecoder(r *reader) interface{} {
-	return math.Float32frombits(r.readBits(4))
+// noscaleDecoder returns the pre-boxed value from the reader's float32 cache
+// instead of boxing a freshly returned float32, which would allocate on every
+// decode. noscaleFloat32 exists for callers that need a plain float32 (QAngle
+// noscale components); use it there, never re-box its result here.
+func noscaleDecoder(r *reader) any {
+	bits := r.readLeUint32()
+	if bits == 0 {
+		return float32(0)
+	}
+
+	return r.cachedFloat32(bits)
 }
 
-func simulationTimeDecoder(r *reader) interface{} {
-	return float32(r.readVarUint32()) * (1.0 / 64)
+func runeTimeDecoder(r *reader) any {
+	return runeTimeCache[r.readBits(4)]
+}
+
+func simulationTimeDecoder(r *reader) any {
+	t := r.readVarUint32()
+	if t < simTimeCacheLen {
+		return simTimeCache[t]
+	}
+
+	return float32(t) * (1.0 / 64)
 }
 
 func readBitCoordPres(r *reader) float32 {
 	return r.readAngle(20) - 180.0
 }
 
-func qanglePreciseDecoder(r *reader) interface{} {
-	v := make([]float32, 3)
+func qanglePreciseDecoder(r *reader) any {
+	var v [3]float32
+
 	hasX := r.readBoolean()
 	hasY := r.readBoolean()
 	hasZ := r.readBoolean()
@@ -366,7 +434,7 @@ func qanglePreciseDecoder(r *reader) interface{} {
 		v[2] = readBitCoordPres(r)
 	}
 
-	return v
+	return r.vectorValue(v)
 }
 
 func qangleFactory(f *field) fieldDecoder {
@@ -375,43 +443,67 @@ func qangleFactory(f *field) fieldDecoder {
 	}
 
 	if f.bitCount != nil && *f.bitCount != 0 {
-		n := uint32(*f.bitCount)
-		return func(r *reader) interface{} {
-			return []float32{
-				r.readAngle(n),
-				r.readAngle(n),
-				r.readAngle(n),
+		// A 32-bit (or wider) QAngle component is a full-precision noscale float32, not a scaled
+		// angle. readAngle(32) would map the raw IEEE bits into [0,360) and garble the value (e.g.
+		// m_aimPunchAngle reading a near-constant ~265-273 deg). Mirror floatFactory's noscale guard.
+		if *f.bitCount >= 32 {
+			return func(r *reader) any {
+				return r.vectorValue([3]float32{
+					noscaleFloat32(r),
+					noscaleFloat32(r),
+					noscaleFloat32(r),
+				})
 			}
+		}
+
+		n := uint32(*f.bitCount)
+
+		return func(r *reader) any {
+			return r.vectorValue([3]float32{
+				r.readAngle(n),
+				r.readAngle(n),
+				r.readAngle(n),
+			})
 		}
 	}
 
-	return func(r *reader) interface{} {
-		ret := make([]float32, 3)
+	return func(r *reader) any {
+		var ret [3]float32
+
 		rX := r.readBoolean()
 		rY := r.readBoolean()
+
 		rZ := r.readBoolean()
 		if rX {
 			ret[0] = r.readCoord()
 		}
+
 		if rY {
 			ret[1] = r.readCoord()
 		}
+
 		if rZ {
 			ret[2] = r.readCoord()
 		}
-		return ret
+
+		return r.vectorValue(ret)
 	}
 }
 
-func unsignedDecoder(r *reader) interface{} {
-	return uint64(r.readVarUint32())
+func unsignedDecoder(r *reader) any {
+	v := r.readVarUint32()
+	if v < uint32(len(smallUintCache)) {
+		return smallUintCache[v]
+	}
+
+	return uint64(v)
 }
 
-func unsigned64Decoder(r *reader) interface{} {
+func unsigned64Decoder(r *reader) any {
 	return r.readVarUint64()
 }
 
-func componentDecoder(r *reader) interface{} {
+func componentDecoder(r *reader) any {
 	return r.readBits(1)
 }
 
