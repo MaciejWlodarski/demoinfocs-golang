@@ -27,15 +27,20 @@ func getUInt64(entity st.Entity, propName string) uint64 {
 }
 
 func getFloat(entity st.Entity, propName string) float32 {
+	val, _ := getFloatIfExists(entity, propName)
+	return val
+}
+
+func getFloatIfExists(entity st.Entity, propName string) (float32, bool) {
 	if entity == nil {
-		return 0
+		return 0, false
 	}
 
 	val, ok := entity.PropertyValue(propName)
 	if !ok {
-		return 0
+		return 0, false
 	}
-	return val.Float()
+	return val.Float(), true
 }
 
 func getString(entity st.Entity, propName string) string {

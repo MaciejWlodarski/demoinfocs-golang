@@ -765,39 +765,25 @@ func (p *Player) PositionEyes() r3.Vector {
 	return pos
 }
 
+// Velocity returns the player's velocity from the pawn entity.
 func (p *Player) Velocity() r3.Vector {
 	if p == nil {
 		return r3.Vector{}
 	}
 
-	posCurr := p.CurrPosition
-	posPrev := p.PrevPosition
-
-	if posCurr == nil || posPrev == nil {
+	pawnEntity := p.PlayerPawnEntity()
+	if pawnEntity == nil {
 		return r3.Vector{}
 	}
 
-	currentTick := p.demoInfoProvider.IngameTick()
-
-	if currentTick-posCurr.Tick > 1 {
-		return r3.Vector{}
-	}
-
-	deltaTicks := posCurr.Tick - posPrev.Tick
-	if deltaTicks <= 0 {
-		return r3.Vector{}
-	}
-
-	dx := posCurr.Position.X - posPrev.Position.X
-	dy := posCurr.Position.Y - posPrev.Position.Y
-	dz := posCurr.Position.Z - posPrev.Position.Z
-
-	scale := 64.0
+	x, _ := getFloatIfExists(pawnEntity, "m_vecVelocity.m_vecX")
+	y, _ := getFloatIfExists(pawnEntity, "m_vecVelocity.m_vecY")
+	z, _ := getFloatIfExists(pawnEntity, "m_vecVelocity.m_vecZ")
 
 	return r3.Vector{
-		X: dx * scale,
-		Y: dy * scale,
-		Z: dz * scale,
+		X: float64(x),
+		Y: float64(y),
+		Z: float64(z),
 	}
 }
 
