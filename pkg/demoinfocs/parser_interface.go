@@ -65,6 +65,10 @@ type Parser interface {
 	// Might not be 100% correct since it's just based on the reported tick count of the header.
 	// May always return 0 if the demo header is corrupt.
 	Progress() float32
+
+	// FrameCount returns the total number of demo frames, or -1 while unknown.
+	// For CS2 the total normally becomes available at the end of parsing.
+	FrameCount() int
 	/*
 	   RegisterEventHandler registers a handler for game events.
 

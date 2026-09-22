@@ -52,7 +52,7 @@ type Player struct {
 }
 
 func (p *Player) PlayerPawnEntity() st.Entity {
-	if p.Entity == nil {
+	if p == nil || p.Entity == nil {
 		return nil
 	}
 	pawn, exists := p.Entity.PropertyValue("m_hPawn")
@@ -614,7 +614,15 @@ func (p *Player) Money() int {
 
 // EquipmentValueCurrent returns the current value of equipment in the player's inventory.
 func (p *Player) EquipmentValueCurrent() int {
-	return int(getUInt64(p.PlayerPawnEntity(), "m_unCurrentEquipmentValue"))
+	pawn := p.PlayerPawnEntity()
+	if pawn == nil {
+		return 0
+	}
+	value, exists := pawn.PropertyValue("m_unCurrentEquipmentValue")
+	if !exists || value.Any == nil {
+		return 0
+	}
+	return int(value.S2UInt64())
 }
 
 // EquipmentValueRoundStart returns the value of equipment in the player's inventory at the time of the round start.
@@ -1012,4 +1020,32 @@ type PlayerInfo struct {
 	IsFakePlayer bool
 	// HLTV Proxy
 	IsHltv bool
+}
+
+// ActiveWeaponID returns the entity ID of the currently active weapon, or zero when unavailable.
+func (p *Player) ActiveWeaponID() int { return p.activeWeaponID() }
+
+// FlashbangCount returns the number of flashbangs in the player's inventory.
+func (p *Player) FlashbangCount() uint64 { return uint64(p.Flashbangs()) }
+
+// ViewmodelOffset returns the viewmodel offset, or a zero vector when unavailable.
+func (p *Player) ViewmodelOffset() r3.Vector {
+	pawn := p.PlayerPawnEntity()
+	if pawn == nil {
+		return r3.Vector{}
+	}
+	x, _ := getFloatIfExists(pawn, "m_flViewmodelOffsetX")
+	y, _ := getFloatIfExists(pawn, "m_flViewmodelOffsetY")
+	z, _ := getFloatIfExists(pawn, "m_flViewmodelOffsetZ")
+	return r3.Vector{X: float64(x), Y: float64(y), Z: float64(z)}
+}
+
+// ViewmodelFOV returns the viewmodel field of view, or zero when unavailable.
+func (p *Player) ViewmodelFOV() float32 {
+	pawn := p.PlayerPawnEntity()
+	if pawn == nil {
+		return 0
+	}
+	fov, _ := getFloatIfExists(pawn, "m_flViewmodelFOV")
+	return fov
 }

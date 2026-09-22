@@ -120,3 +120,33 @@ Pierwszą paczkę zapisano jako `4a60032`. Kolejna paczka przenosi pooling bufor
 Adaptacje: kontrola readBytes uwzględnia bajty już pobrane przez Huffman lookahead; bufor zagnieżdżonej wiadomości jest zwracany także przy błędzie; długość jest sprawdzana względem pozostałej zawartości pakietu przed alokacją. Po aktualizacji gobitread jawnie wykrywamy krótki odczyt ramki jako unexpected EOF. Zachowano kolejność priorytetów wiadomości i snapshoty skinów. Nie dodano obsługi transmisji CSTV ani szyfrowanych wiadomości.
 
 Weryfikacja: testy z race PASS; dwa przebiegi każdego demo w golden PASS; pełne JSON-y konsumenta dla obu dem PASS względem niezmienionego d170961. Testy jednostkowe obejmują własność bajtów po ponownym użyciu bufora, kolejkę po błędzie, zachowanie pierwszego błędu, uszkodzone długości/indeksy i odczyt po lookahead.
+
+**Etap 3: zgodne dodatki publicznego API**
+
+Druga paczka jest zapisana jako `8a4baed`. Przeniesiono:
+
+| Źródło | Zakres |
+|---|---|
+| `4e49895`, `c8786da` | nil receiver w PlayerPawnEntity oraz brak encji/właściwości w EquipmentValueCurrent; dodatkowo obsłużono pustą wartość właściwości |
+| `6551a15` | publiczne ActiveWeaponID jako wrapper dotychczasowej funkcji, bez zmiany logiki ActiveWeapon |
+| `6fd4f47` | FlashbangCount jako wrapper istniejącego Flashbangs |
+| `20e6497` | ViewmodelOffset i ViewmodelFOV, dostosowane do forka obsługującego CS2 |
+| `d948d9a` | FrameCount: -1 zanim znana jest łączna liczba klatek; rozszerzenie interfejsu Parser |
+| `bf2c9b4` częściowo | typy i mapy modeli noży oraz MapKnifeType wraz z testami; bez zmiany zdarzeń/Equipment i bez OriginalString |
+
+Weryfikacja: wszystkie krótkie testy z race PASS; golden obu dem PASS; pełny konsument na obu demach PASS (bez zmiany wzorców). Rozszerzenie interfejsu Parser wymaga dodania FrameCount w zewnętrznych ręcznych mockach, jeśli takie istnieją; aktualny konsument kompiluje się poprawnie.
+
+**Pozostałe obszary — nie są zakończonym merge’em**
+
+| Obszar | Ocena po tych paczkach |
+|---|---|
+| Nazwy właściwości send-node, kolekcje, typy wektorów | Świadomie zachowane zachowanie forka; pełne wersje upstreamu powodowały wykazane regresje |
+| Klasyfikacja PlayerHurt/obrażeń bomby, kolejność zdarzeń i WeaponFire | Pozostawione: audyt wykazał inne klasyfikacje i ticki na tych samych demach |
+| Powiązanie ofiar flasha, granatów, deterministyczne IDs, nowe eventy | Pozostają do osobnej oceny względem FakePlayerFlashed i własnego stanu/zdarzeń forka; nie uznano ich automatycznie za niemożliwe |
+| Naprawa rekurencji getThrownGrenade (`b1ebbb3`) | Nie dotyczy obecnego forka: jego implementacja nie używa tej rekurencji |
+| UserCmd i stan przycisków | Oddzielna funkcjonalność; fork rejestruje typ wiadomości, ale nie ma pełnej nowej warstwy usercmd upstreamu. Brak testowego korpusu dla tego przypadku |
+| Protokoły protobuf / wiadomości szyfrowane | Nie przeniesione; wymagają spójnej aktualizacji generowanych typów i ścieżki deszyfrowania. Dwa aktualne GOTV nie testują deszyfrowania |
+| Usunięcie API v4, zmiany modułu v5/v6, historia CS:GO/CSTV | Nie przeniesione do używanego API forka |
+| CI, dokumentacja, przykłady, pozostałe testy upstreamu | Inwentarz istnieje; nie jest to kompletne odtworzenie infrastruktury upstreamu |
+
+Git nadal może pokazywać 319 commitów upstream-only względem starej wspólnej bazy: backporty zapisano jako nowe lokalne commity, bez dopisywania nieprzeniesionej historii upstreamu jako przodka. Liczba ta nie mierzy ilości już przeniesionego kodu. Branch nie został wypchnięty, a przypięcie parsera w aplikacji nie zostało zmienione.

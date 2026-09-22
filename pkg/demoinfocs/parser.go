@@ -208,6 +208,15 @@ func (p *parser) Progress() float32 {
 	return float32(p.currentFrame) / float32(p.header.PlaybackFrames)
 }
 
+// FrameCount returns the total number of demo frames, or -1 while unknown.
+// CS2 usually supplies the total in the trailing CDemoFileInfo message.
+func (p *parser) FrameCount() int {
+	if p.header == nil || p.header.PlaybackFrames <= 0 {
+		return -1
+	}
+	return p.header.PlaybackFrames
+}
+
 /*
 RegisterEventHandler registers a handler for game events.
 
