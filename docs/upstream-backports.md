@@ -25,9 +25,9 @@ W niezależnych aktualizacjach w jednej klatce kolejność może zależeć od it
 
 Przy czterech przebiegach niezmienionego forka na Anubisie wystąpiło naprzemiennie 170 albo 171 PlayerSpawn. Jedyną różnicą był dodatkowy spawn w ticku 0, klatce 31. Z tego powodu PlayerSpawn w ticku 0 są raportowane przez test osobno i nie wchodzą do porównania golden. Wszystkie spawny po ticku 0 podlegają ścisłemu porównaniu. Nie zmieniano zachowania produkcyjnego spawnu.
 
-`consumer.json` przechowuje oddzielne hashe JSON aplikacji dla przypiętego bdfe887 oraz lokalnego d170961, a także odcisk źródeł konsumenta, danych dem i pliku mapy. Źródła konsumenta obejmują zastaną lokalną zmianę `match/player_state.go`; oryginalny projekt nie został zmodyfikowany.
+`consumer.json` przechowuje oddzielne hashe JSON aplikacji dla przypiętego bdfe887 oraz bieżącej gałęzi, a także odcisk źródeł konsumenta, danych dem i pliku mapy. Początkowe oczekiwania bieżącej gałęzi były oparte na d170961; późniejsze przejrzane aktualizacje opisano poniżej. Źródła konsumenta obejmują zastaną lokalną zmianę `match/player_state.go`; oryginalny projekt nie został zmodyfikowany podczas pomiarów.
 
-Skrypt `scripts/check-consumer-compatibility.py` buduje tymczasową kopię konsumenta z aktualnym forkiem i porównuje wynik z d170961. Normalizuje wyłącznie kolejność kluczy JSON, inventory oraz seen_events według ticka i zawartości. Nie usuwa żadnych pól wynikowych, nie pomija różnic liczbowych i nie aktualizuje automatycznie wzorca. Hash pinned służy do udokumentowania odrębnej wersji aplikacji; nie jest mylony z oczekiwanym wynikiem bieżącej biblioteki.
+Skrypt `scripts/check-consumer-compatibility.py` buduje tymczasową kopię konsumenta z aktualnym forkiem i porównuje wynik z przejrzanymi oczekiwaniami bieżącej gałęzi. Normalizuje wyłącznie kolejność kluczy JSON, inventory oraz seen_events według ticka i zawartości. Nie usuwa żadnych pól wynikowych, nie pomija różnic liczbowych i nie aktualizuje automatycznie wzorca. Hash pinned służy do udokumentowania odrębnej wersji aplikacji; nie jest mylony z oczekiwanym wynikiem bieżącej biblioteki.
 
 **Uruchomienie testów**
 
@@ -178,3 +178,11 @@ W obu demach nie wystąpiła zmiana wyników flashowania ani PlayerHurt. Test ni
 Weryfikacja: krótkie testy z race PASS; oba testy GOTV (golden i niezależne przypisanie) po dwa przebiegi PASS; pełne wyniki konsumenta PASS względem przejrzanych oczekiwań. Nie usuwano żadnych pól przy porównaniu JSON. Oryginalny projekt konsumenta i przypięcie jego biblioteki pozostają bez zmian.
 
 Dodatkowy pełny przebieg Mirage z `-race`, obejmujący nowe ostrzeżenia i porównanie golden: PASS (132,744 s). `git diff --check`: PASS.
+
+**Etap 5: tożsamość gracza i zgodność z wersją używaną przez aplikację**
+
+Przeniesiono ochronę przed brakującym pawnem, kontrolerem i graczem podczas aktualizacji podkładania bomby (`5466e2e`). Miejsce podłożenia jest odczytywane z już odnalezionego pawna. `getOrCreatePlayer` aktualizuje `UserID` odnalezionego gracza przy dostępnych `PlayerInfo` (`15cf137`), usuwa jego poprzedni indeks i zachowuje dotychczasowe ID przy brakujących danych. Przy zniszczeniu kontrolera usuwane są również indeksy kontrolera i user ID (`a31cefb`), pod warunkiem że nadal wskazują usuwaną encję i gracza. Testy obejmują zmianę user ID, brak danych, wyczyszczenie starych wpisów oraz ochronę nowszych wpisów pod tym samym ID.
+
+Porównanie aplikacji z przypiętym `bdfe887` wykazało, że jedyny późniejszy commit forka (`d170961`) zamienił `Player.Velocity()` liczone z różnicy pozycji na odczyt nienetworkowanego w tych demach pola pawna. Na Mirage zmieniało to 7302 pól, a na Anubisie 5978, w tym `thrower_velocity` i `movement_inaccuracy`. Zgodnie z decyzją o wycofaniu tej funkcji przywrócono poprzednie obliczanie prędkości. Pomocniczy `getFloatIfExists` pozostaje używany przez odczyt ustawień viewmodelu z etapu 3.
+
+Po przywróceniu prędkości pełny JSON Anubisa jest identyczny z wynikowym JSON-em aplikacji używającej `bdfe887`. Na Mirage różni się dokładnie jedno wcześniej zbadane pole: `rounds[29].events.grenades[27].throw_strength`, `0 → 1`, wskutek odzyskania encji smoke’a opisanego w etapie 4. Porównanie normalizuje jedynie kolejność kluczy JSON, `inventory` i zdarzeń `seen_events` w obrębie ticka. Oczekiwane hashe aplikacji w `consumer.json` aktualizowano po sprawdzeniu tej różnicy; hash przypiętej wersji pozostał bez zmian. Golden bibliotek na obu demach nadal PASS.

@@ -8,17 +8,17 @@
   "demos": {
     "demo1": {
       "demo_sha256": "93056dedad655bfd25d3ddf9520e5f597fbf2c5c54ba8cc8a46c5ad23d29b473",
-      "current_output_sha256": "03b0afd3471a37102ed60e869a37b3a91109ba0d35931c01b598d8215c0dc3d9",
+      "current_output_sha256": "de709892bf90f798ff6e86bf546a5d51106da359a9c6c7a3d08fce44e62b5e3d",
       "pinned_output_sha256": "d1da4acfb7a4a35b0471da48fd8e8e4cefb9a6ffd1de78785ca0e5543322bd45",
       "before_event_backports_output_sha256": "aeb77b93a09bffe58d1cce3ceee0b994b3898ee9127fda8275e58383a09b99ab"
     },
     "demo2": {
       "demo_sha256": "b8c52c1a09a5dddc4bd7c493799f23705c6fe54c3910c92043ba44e58f82e22e",
-      "current_output_sha256": "feccad0d64014b71c28271f335065a48a46b461832ec7eefc7d7f7eaab5cffef",
+      "current_output_sha256": "0c4332ba92db748d8ee7ae9a3adbd567df87a8da53a944adb951deb07b310891",
       "pinned_output_sha256": "0c4332ba92db748d8ee7ae9a3adbd567df87a8da53a944adb951deb07b310891",
       "before_event_backports_output_sha256": "feccad0d64014b71c28271f335065a48a46b461832ec7eefc7d7f7eaab5cffef"
     }
   },
-  "expectation_revision": "event-backports-2026-09-22",
+  "expectation_revision": "pinned-velocity-restored-2026-09-23",
   "reviewed_delta": "event-backports-evidence.json"
 }

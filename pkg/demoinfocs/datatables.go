@@ -50,18 +50,25 @@ func (p *parser) bindBomb() {
 		bombEntity.Property("m_bStartedArming").OnUpdate(func(val st.PropertyValue) {
 			if val.BoolVal() {
 				planterHandle := bombEntity.PropertyValueMust("m_hOwnerEntity").Handle()
-				ctlHandle := p.gameState.entities[entityIDFromHandle(planterHandle)].PropertyValueMust("m_hController").Handle()
+				pawnEntity := p.gameState.entities[entityIDFromHandle(planterHandle)]
+				if pawnEntity == nil {
+					return
+				}
+				ctlHandle := pawnEntity.PropertyValueMust("m_hController").Handle()
 				ctl := p.gameState.entities[entityIDFromHandle(ctlHandle)]
 				if ctl == nil {
 					return
 				}
 				planter := p.gameState.playersByEntityID[ctl.ID()]
+				if planter == nil {
+					return
+				}
 
 				if !planter.IsPlanting {
 					planter.IsPlanting = true
 					p.gameState.currentPlanter = planter
 
-					siteNumber := p.gameState.currentPlanter.PlayerPawnEntity().PropertyValueMust("m_nWhichBombZone").Int()
+					siteNumber := pawnEntity.PropertyValueMust("m_nWhichBombZone").Int()
 					site := events.BomsiteUnknown
 					switch siteNumber {
 					case 1:
@@ -361,8 +368,6 @@ func (p *parser) getOrCreatePlayer(entityID int, rp *common.PlayerInfo) (isNew b
 				}
 				player.SteamID64 = rp.XUID
 				player.IsBot = rp.IsFakePlayer || rp.GUID == "BOT"
-				player.UserID = userID
-
 				p.gameState.indexPlayerBySteamID(player)
 			}
 		} else {
@@ -376,11 +381,14 @@ func (p *parser) getOrCreatePlayer(entityID int, rp *common.PlayerInfo) (isNew b
 		}
 	}
 
-	p.gameState.playersByEntityID[entityID] = player
-
 	if rp != nil {
+		if player.UserID != userID && p.gameState.playersByUserID[player.UserID] == player {
+			delete(p.gameState.playersByUserID, player.UserID)
+		}
+		player.UserID = userID
 		p.gameState.playersByUserID[userID] = player
 	}
+	p.gameState.playersByEntityID[entityID] = player
 
 	return isNew, player
 }
@@ -525,11 +533,21 @@ func (p *parser) bindNewPlayerControllerS2(controllerEntity st.Entity) {
 	})
 
 	controllerEntity.OnDestroy(func() {
-		pl.IsConnected = false
-		delete(p.gameState.playersByEntityID, controllerEntity.ID())
+		if p.gameState.playerControllerEntities[controllerEntity.ID()] == controllerEntity {
+			delete(p.gameState.playerControllerEntities, controllerEntity.ID())
+			if p.gameState.playersByEntityID[controllerEntity.ID()] == pl {
+				delete(p.gameState.playersByEntityID, controllerEntity.ID())
+			}
+		}
+		if pl.Entity == controllerEntity {
+			pl.IsConnected = false
+			if p.gameState.playersByUserID[pl.UserID] == pl {
+				delete(p.gameState.playersByUserID, pl.UserID)
+			}
 
-		alive := false
-		p.gameState.setPlayerLifeState(pl, &alive)
+			alive := false
+			p.gameState.setPlayerLifeState(pl, &alive)
+		}
 	})
 }
 
