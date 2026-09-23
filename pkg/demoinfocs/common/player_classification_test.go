@@ -41,10 +41,11 @@ type classificationProvider struct {
 func (p classificationProvider) FindEntityByHandle(uint64) st.Entity { return p.pawn }
 
 func TestIsCoach(t *testing.T) {
-	if IsCoach(nil) {
+	var nilPlayer *Player
+	if nilPlayer.IsCoach() || IsCoach(nilPlayer) {
 		t.Fatal("nil player cannot be a coach")
 	}
-	if IsCoach(&Player{}) {
+	if (&Player{}).IsCoach() {
 		t.Fatal("player without a controller cannot be a coach")
 	}
 	for _, tc := range []struct {
@@ -61,18 +62,19 @@ func TestIsCoach(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			player := &Player{Coaching: tc.coaching, Entity: classificationEntity{values: map[string]any{"m_szClan": tc.tag}}}
-			if got := IsCoach(player); got != tc.want {
-				t.Fatalf("IsCoach() = %v, want %v", got, tc.want)
+			if got := player.IsCoach(); got != tc.want || IsCoach(player) != got {
+				t.Fatalf("IsCoach() = %v, want %v; package wrapper agrees: %v", got, tc.want, IsCoach(player) == got)
 			}
 		})
 	}
 }
 
 func TestIsDuckingOrTransitioning(t *testing.T) {
-	if IsDuckingOrTransitioning(nil) {
+	var nilPlayer *Player
+	if nilPlayer.IsDuckingOrTransitioning() || IsDuckingOrTransitioning(nilPlayer) {
 		t.Fatal("nil player cannot be ducking")
 	}
-	if IsDuckingOrTransitioning(&Player{}) {
+	if (&Player{}).IsDuckingOrTransitioning() {
 		t.Fatal("player without a pawn cannot be ducking")
 	}
 	for _, tc := range []struct {
@@ -98,8 +100,8 @@ func TestIsDuckingOrTransitioning(t *testing.T) {
 				Entity:           classificationEntity{values: map[string]any{"m_hPawn": uint64(7), "m_hPlayerPawn": uint64(7)}},
 				demoInfoProvider: classificationProvider{pawn: classificationEntity{values: pawnValues}},
 			}
-			if got := IsDuckingOrTransitioning(player); got != tc.want {
-				t.Fatalf("IsDuckingOrTransitioning() = %v, want %v", got, tc.want)
+			if got := player.IsDuckingOrTransitioning(); got != tc.want || IsDuckingOrTransitioning(player) != got {
+				t.Fatalf("IsDuckingOrTransitioning() = %v, want %v; package wrapper agrees: %v", got, tc.want, IsDuckingOrTransitioning(player) == got)
 			}
 		})
 	}
